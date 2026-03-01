@@ -1,3 +1,77 @@
+ WORKTREE CHEAT SHEET
+ ============================================================================
+ 
+ main
+  └── feature/my-feature  (your PR branch, integration point)
+        ├── feature/my-feature/auth-logic      (worktree 1)
+        ├── feature/my-feature/api-endpoints   (worktree 2)
+        └── feature/my-feature/ui-components   (worktree 3)
+
+
+ 1. Create a new branch
+
+ cd ~/work/co/contract-one
+ git checkout -b feature/my-feature origin/main
+
+
+ 2. Create a worktree with an existing branch
+
+ git worktree add ../co-auth      -b feature/my-feature/auth-logic
+ git worktree add ../co-api       -b feature/my-feature/api-endpoints
+ git worktree add ../co-ui        -b feature/my-feature/ui-components
+
+
+ 3. Run Claude Code in separate tmux windows:
+
+ # tmux window 1
+ cd ../co-auth && claude
+ # "Implement the authentication service and domain logic for contract sharing"
+
+ # tmux window 2
+ cd ../co-api && claude
+ # "Implement the REST API endpoints for contract sharing"
+
+ # tmux window 3
+ cd ../co-ui && claude
+ # "Implement the frontend components for the contract sharing dialog"
+
+
+ 4. As each sub-task completes, merge into your feature branch:
+
+ cd ~/work/co/contract-one
+ git checkout feature/my-feature
+
+ # Auth logic is done first
+ git merge feature/my-feature/auth-logic
+
+ # API is done next — may depend on auth, so rebase first
+ cd ../co-api
+ git rebase feature/my-feature
+ # resolve any conflicts, verify it builds
+ cd ~/work/co/contract-one
+ git merge feature/my-feature/api-endpoints
+
+ # UI finishes last
+ cd ../co-ui
+ git rebase feature/my-feature
+ cd ~/work/co/contract-one
+ git merge feature/my-feature/ui-components
+
+ 
+ 5. Clean up and submit PR:
+
+ # Clean up when done
+ git worktree list
+
+ git worktree remove ../co-auth
+ git worktree remove ../co-api
+ git worktree remove ../co-ui
+ git branch -D feature/my-feature/auth-logic feature/my-feature/api-endpoints feature/my-feature/ui-components
+
+ # Push and create PR
+ git push -u origin feature/my-feature
+
+
  TMUX CHEAT SHEET                                    prefix = ` (backtick)
  ============================================================================
 
@@ -6,18 +80,15 @@
    ` + ?           Show this cheat sheet (popup)
    ` + r           Reload tmux config
    ` + e           Send literal backtick
-   ` + `           Switch to last window
 
  SESSIONS
    ` + s           List sessions
    ` + $           Rename session
-   ` + (  /  )     Previous / next session
    tmux new -s X   Create session named X
    tmux a -t X     Attach to session X
 
  WINDOWS
    ` + c           New window (keeps current path)
-   ` + n  /  p     Next / previous window
    ` + 1-9         Jump to window N
    ` + ,           Rename window
    ` + w           Window chooser
