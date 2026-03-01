@@ -41,5 +41,10 @@
    ` + g           List/switch worktrees (fzf popup)
    ` + G           Create worktree → new tmux window
 
+ WINDOW NAMING
+   Windows auto-rename to git branch (or dir basename).
+   Detached HEAD shows short SHA. Updates every 5s.
+   ` + ,           Manual rename (disables auto-rename for that window)
+
  SHELL: gwa <branch>  gwl  gwr <branch>
  MOUSE: enabled (scroll, click, resize)
