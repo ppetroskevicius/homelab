@@ -1,0 +1,22 @@
+# Private keys and certificates
+*.pem
+*.key
+*.pfx
+*.p12
+id_rsa*
+id_ed25519
+id_ecdsa
+
+# Environment files
+.env
+.env.*
+
+# AWS credentials
+.aws/credentials
+
+# SSH agent sockets
+ssh-agent.*
+
+# OS files
+.DS_Store
+Thumbs.db

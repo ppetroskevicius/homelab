@@ -75,16 +75,19 @@ headphones_indicator = true
 # Fallback: generic sink names
 "alsa_output.pci-0000_00_1f.3.analog-stereo" = "Speakers"
 {{- end }}
+{{- $sonyMacUnderscore := .bt_sony_wh1000xm5_mac | replace ":" "_" }}
+{{- $headsetMacUnderscore := .bt_headset_mac | replace ":" "_" }}
+{{- $audioMacUnderscore := .bt_audio_mac | replace ":" "_" }}
 # PipeWire device names (Ubuntu 24.04+)
-"bluez_output.88_C9_E8_DC_ED_8E.1" = "Sony WH-1000XM5"
-"bluez_output.88_C9_E8_DC_ED_8E" = "Sony WH-1000XM5"
+"bluez_output.{{ $sonyMacUnderscore }}.1" = "Sony WH-1000XM5"
+"bluez_output.{{ $sonyMacUnderscore }}" = "Sony WH-1000XM5"
 # Legacy PulseAudio device names (for compatibility)
-"bluez_sink.88_C9_E8_DC_ED_8E.a2dp_sink" = "Sony WH-1000XM5"
-"bluez_sink.88_C9_E8_DC_ED_8E.handsfree_head_unit" = "Sony WH-1000XM5 (Call)"
-"bluez_sink.04_52_C7_F4_55_2A.a2dp_sink" = "Headset"
-"bluez_sink.04_52_C7_F4_55_2A.handsfree_head_unit" = "Headset (Call)"
-"bluez_sink.C0_EB_D0_FB_A3_AB.a2dp_sink" = "Bluetooth Audio"
-"bluez_sink.C0_EB_D0_FB_A3_AB.handsfree_head_unit" = "Bluetooth Audio (Call)"
+"bluez_sink.{{ $sonyMacUnderscore }}.a2dp_sink" = "Sony WH-1000XM5"
+"bluez_sink.{{ $sonyMacUnderscore }}.handsfree_head_unit" = "Sony WH-1000XM5 (Call)"
+"bluez_sink.{{ $headsetMacUnderscore }}.a2dp_sink" = "Headset"
+"bluez_sink.{{ $headsetMacUnderscore }}.handsfree_head_unit" = "Headset (Call)"
+"bluez_sink.{{ $audioMacUnderscore }}.a2dp_sink" = "Bluetooth Audio"
+"bluez_sink.{{ $audioMacUnderscore }}.handsfree_head_unit" = "Bluetooth Audio (Call)"
 [[block.click]]
 button = "left"
 cmd = "pavucontrol"
@@ -110,7 +113,7 @@ action = "seek_backward"
 
 [[block]]
 block = "bluetooth"
-mac = "04:52:C7:F4:55:2A"
+mac = "{{ .bt_headset_mac }}"
 disconnected_format = ""
 format = " $icon{ $percentage|}"
 [[block.click]]
@@ -119,7 +122,7 @@ cmd = "blueman-manager"
 
 [[block]]
 block = "bluetooth"
-mac = "88:C9:E8:DC:ED:8E"
+mac = "{{ .bt_sony_wh1000xm5_mac }}"
 disconnected_format = ""
 format = " $icon{ $percentage|}"
 [[block.click]]
@@ -128,7 +131,7 @@ cmd = "blueman-manager"
 
 [[block]]
 block = "bluetooth"
-mac = "C0:EB:D0:FB:A3:AB"
+mac = "{{ .bt_audio_mac }}"
 disconnected_format = ""
 format = " $icon{ $percentage|} "
 [[block.click]]

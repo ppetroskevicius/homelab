@@ -1,7 +1,7 @@
 {{- $isWork := and (hasKey . "is_work") .is_work -}}
 [user]
 	name = ppetroskevicius
-	email = p.petroskevicius@gmail.com
+	email = {{ .email }}
 [pull]
   rebase = false
 [push]
