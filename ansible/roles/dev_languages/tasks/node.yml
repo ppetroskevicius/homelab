@@ -1,0 +1,58 @@
+---
+# Install Node.js via NVM and pnpm
+
+- name: Check if NVM is already installed
+  ansible.builtin.stat:
+    path: "{{ ansible_facts.env.HOME }}/.nvm"
+  register: nvm_exists
+
+- name: Download and install NVM
+  ansible.builtin.shell: |
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+  args:
+    creates: "{{ ansible_facts.env.HOME }}/.nvm/nvm.sh"
+  when: not nvm_exists.stat.exists
+
+- name: Check if Node.js is installed via NVM
+  ansible.builtin.shell: |
+    export NVM_DIR="{{ ansible_facts.env.HOME }}/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+    nvm current 2>/dev/null | grep -v "none" || echo ""
+  args:
+    executable: /bin/bash
+  register: node_current
+  changed_when: false
+
+- name: Install Node.js LTS via NVM
+  ansible.builtin.shell: |
+    export NVM_DIR="{{ ansible_facts.env.HOME }}/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+    nvm install {{ node_version }}
+    nvm use {{ node_version }}
+    nvm alias default node
+  args:
+    executable: /bin/bash
+  when: node_current.stdout == ""
+  register: node_install_result
+  changed_when: node_install_result.rc == 0
+
+- name: Check if pnpm is already installed
+  ansible.builtin.shell: |
+    export NVM_DIR="{{ ansible_facts.env.HOME }}/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+    command -v pnpm
+  args:
+    executable: /bin/bash
+  register: pnpm_check
+  changed_when: false
+  failed_when: false
+
+- name: Install pnpm via curl
+  ansible.builtin.shell: |
+    curl -fsSL https://get.pnpm.io/install.sh | sh -
+  args:
+    executable: /bin/bash
+    creates: "{{ ansible_facts.env.HOME }}/.local/share/pnpm/pnpm"
+  when: pnpm_check.rc != 0
+  environment:
+    SHELL: /bin/bash

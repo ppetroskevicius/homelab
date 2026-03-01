@@ -1,0 +1,36 @@
+---
+# Default values for GPU passthrough role
+
+# Whether GPU passthrough is enabled (set in host_vars)
+gpu_passthrough:
+  enabled: false
+  cpu_vendor: ""  # "intel" or "amd"
+
+# List of GPU devices for passthrough (set in host_vars)
+# Example:
+# gpu_passthrough_devices:
+#   - name: "NVIDIA RTX 3090"
+#     pci_slot: "0000:41:00.0"
+#     vendor_id: "10de"
+#     device_id: "2204"
+#     audio_pci_slot: "0000:41:00.1"
+#     audio_device_id: "1aef"
+gpu_passthrough_devices: []
+
+# Kernel modules to load for VFIO
+vfio_modules:
+  - vfio
+  - vfio_iommu_type1
+  - vfio_pci
+
+# GPU drivers to blacklist (prevent host from using the GPU)
+gpu_driver_blacklist:
+  nvidia:
+    - nvidia
+    - nvidia_drm
+    - nvidia_modeset
+    - nvidia_uvm
+    - nouveau
+  amd:
+    - amdgpu
+    - radeon

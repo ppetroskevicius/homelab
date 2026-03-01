@@ -1,0 +1,5 @@
+# VFIO modules for GPU passthrough
+# Managed by Ansible - gpu_passthrough role
+{% for module in vfio_modules %}
+{{ module }}
+{% endfor %}

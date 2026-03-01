@@ -1,0 +1,59 @@
+---
+# Install Rust via rustup (user-level installation)
+
+- name: Check if cargo is already installed
+  ansible.builtin.stat:
+    path: "{{ ansible_facts.env.HOME }}/.cargo/bin/cargo"
+  register: cargo_exists
+
+# macOS: Install rustup via Homebrew, then initialize toolchain
+- name: Install rustup via Homebrew (macOS)
+  community.general.homebrew:
+    name: rustup
+    state: present
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - not cargo_exists.stat.exists
+
+- name: Initialize Rust toolchain (macOS)
+  ansible.builtin.command: rustup-init -y --no-modify-path --default-toolchain {{ rust_toolchain }}
+  args:
+    creates: "{{ ansible_facts.env.HOME }}/.cargo/bin/cargo"
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - not cargo_exists.stat.exists
+
+# Linux: Install rustup via curl
+- name: Download rustup installer (Linux)
+  ansible.builtin.get_url:
+    url: https://sh.rustup.rs
+    dest: /tmp/rustup-init.sh
+    mode: '0755'
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - not cargo_exists.stat.exists
+
+- name: Install Rust via rustup (Linux)
+  ansible.builtin.shell: |
+    /tmp/rustup-init.sh -y --default-toolchain {{ rust_toolchain }}
+  args:
+    creates: "{{ ansible_facts.env.HOME }}/.cargo/bin/cargo"
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - not cargo_exists.stat.exists
+
+- name: Clean up rustup installer (Linux)
+  ansible.builtin.file:
+    path: /tmp/rustup-init.sh
+    state: absent
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - not cargo_exists.stat.exists
+
+- name: Update Rust toolchain
+  ansible.builtin.shell: |
+    source {{ ansible_facts.env.HOME }}/.cargo/env && rustup update
+  args:
+    executable: /bin/bash
+  when: cargo_exists.stat.exists
+  changed_when: false

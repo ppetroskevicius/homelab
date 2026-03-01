@@ -1,0 +1,15 @@
+---
+# Clone Alacritty color themes (cross-platform)
+
+- name: Ensure Alacritty config directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/.config/alacritty"
+    state: directory
+    mode: '0755'
+
+- name: Clone Alacritty themes
+  ansible.builtin.git:
+    repo: https://github.com/alacritty/alacritty-theme.git
+    dest: "{{ ansible_facts.env.HOME }}/.config/alacritty/themes"
+    depth: 1
+    version: master

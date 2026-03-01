@@ -1,0 +1,4 @@
+# VFIO PCI device IDs for GPU passthrough
+# Managed by Ansible - gpu_passthrough role
+# These devices will be bound to vfio-pci driver at boot
+options vfio-pci ids={{ vfio_device_ids | join(',') }}

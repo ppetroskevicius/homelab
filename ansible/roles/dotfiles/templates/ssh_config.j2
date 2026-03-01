@@ -1,0 +1,65 @@
+# SSH Config for non-desktop machines (managed by Ansible)
+# No 1Password agent - uses SSH agent forwarding from desktop
+
+# Global settings
+Host *
+  ForwardAgent yes
+  AddKeysToAgent yes
+  Compression yes
+  User {{ target_user }}
+
+# Bare Metal Hypervisors
+Host bm-hypervisor-01
+  HostName 192.168.20.20
+
+Host bm-hypervisor-02
+  HostName 192.168.20.33
+
+Host bm-hypervisor-03
+  HostName 192.168.20.22
+
+Host bm-hypervisor-04
+  HostName 192.168.10.194
+
+# Kubernetes Nodes
+Host vm-k8s-node-01
+  HostName 192.168.20.51
+
+Host vm-k8s-node-02
+  HostName 192.168.20.52
+
+Host vm-k8s-node-03
+  HostName 192.168.20.53
+
+# Dev Container Host
+Host vm-dev-container-01
+  HostName 192.168.20.61
+
+# Service VM
+Host vm-service
+  HostName 192.168.20.71
+
+# Desktops
+Host dt-dev-01
+  HostName 192.168.10.189
+
+Host dt-dev-02
+  HostName 192.168.10.135
+
+Host dt-dev-03
+  HostName 192.168.10.136
+
+Host dt-dev-04
+  HostName 192.168.10.137
+
+Host dt-dev-05
+  HostName 192.168.10.138
+
+# GitHub - uses forwarded agent from desktop
+Host github.com
+  HostName github.com
+  User git
+
+Host github.com-work
+  HostName github.com
+  User git

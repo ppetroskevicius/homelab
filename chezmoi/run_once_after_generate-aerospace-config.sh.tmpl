@@ -1,0 +1,15 @@
+{{- if eq .chezmoi.os "darwin" -}}
+#!/usr/bin/env bash
+# Generate ~/.aerospace.toml from base + cafe profile (safe default)
+# Switch to your actual profile with: aerospace-profile home|office|villa|cafe
+set -euo pipefail
+
+CONFIG_DIR="$HOME/.config/aerospace"
+TARGET="$HOME/.aerospace.toml"
+
+if [[ -f "$CONFIG_DIR/base.toml" ]] && [[ -f "$CONFIG_DIR/monitors-cafe.toml" ]]; then
+    cat "$CONFIG_DIR/base.toml" "$CONFIG_DIR/monitors-cafe.toml" > "$TARGET"
+    echo "Generated $TARGET with cafe profile (default)"
+    echo "Switch profile with: aerospace-profile home|office|villa|cafe"
+fi
+{{- end }}

@@ -1,0 +1,68 @@
+# terraform.tfvars.example
+# Copy to terraform.tfvars and fill in your values
+#
+# cp terraform.tfvars.example terraform.tfvars
+# Then edit terraform.tfvars with your SSH public key
+
+# Libvirt connection URI
+# Default connects to bm-hypervisor-01 via SSH
+libvirt_uri = "qemu+ssh://fastctl@192.168.20.20/system"
+
+# SSH public key for VM access
+# Get your public key with: cat ~/.ssh/id_ed25519.pub
+# Or from 1Password: op read "op://Personal/ssh-key-ed25519/public key"
+ssh_public_key = "ssh-ed25519 AAAA... your-key-here"
+
+# Storage pool (default is usually fine)
+storage_pool = "default"
+
+# Network bridge on the hypervisor
+bridge_name = "br0"
+
+# Network configuration
+network_gateway = "192.168.20.1"
+network_dns     = ["1.1.1.1", "8.8.8.8"]
+
+# VM user
+vm_user = "fastctl"
+
+# VM definitions (defaults are set in variables.tf)
+# Uncomment and modify to customize:
+#
+# vms = {
+#   "vm-k8s-node-01" = {
+#     vcpu       = 4
+#     memory_mb  = 16384
+#     disk_gb    = 50
+#     ip_address = "192.168.20.51"
+#     role       = "k8s-control-plane"
+#   }
+#   "vm-k8s-node-02" = {
+#     vcpu       = 4
+#     memory_mb  = 16384
+#     disk_gb    = 50
+#     ip_address = "192.168.20.52"
+#     role       = "k8s-worker"
+#   }
+#   "vm-k8s-node-03" = {
+#     vcpu       = 4
+#     memory_mb  = 16384
+#     disk_gb    = 50
+#     ip_address = "192.168.20.53"
+#     role       = "k8s-worker"
+#   }
+#   "vm-dev-container-01" = {
+#     vcpu       = 8
+#     memory_mb  = 32768
+#     disk_gb    = 100
+#     ip_address = "192.168.20.61"
+#     role       = "dev-container"
+#   }
+#   "vm-service-01" = {
+#     vcpu       = 4
+#     memory_mb  = 16384
+#     disk_gb    = 20
+#     ip_address = "192.168.20.71"
+#     role       = "service"
+#   }
+# }

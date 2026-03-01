@@ -1,0 +1,55 @@
+---
+# GPU driver installation for different hardware
+# Controlled by gpu_vendor and gpu_driver_package host_vars
+
+- name: Install NVIDIA drivers
+  ansible.builtin.apt:
+    name: "{{ gpu_driver_package }}"
+    state: present
+    update_cache: true
+  become: true
+  when: gpu_vendor | default('') == 'nvidia'
+  notify: Update initramfs
+
+- name: Create nouveau blacklist config directory
+  ansible.builtin.file:
+    path: /etc/modprobe.d
+    state: directory
+    mode: "0755"
+  become: true
+  when: gpu_vendor | default('') == 'nvidia'
+
+- name: Blacklist nouveau driver for NVIDIA
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/blacklist-nouveau.conf
+    content: |
+      # Blacklist nouveau to allow NVIDIA proprietary driver
+      blacklist nouveau
+      options nouveau modeset=0
+    mode: "0644"
+  become: true
+  when: gpu_vendor | default('') == 'nvidia'
+  notify: Update initramfs
+
+- name: Configure NVIDIA for Wayland/Sway
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/nvidia-drm.conf
+    content: |
+      # Enable DRM kernel mode setting for Wayland support
+      options nvidia-drm modeset=1
+    mode: "0644"
+  become: true
+  when: gpu_vendor | default('') == 'nvidia'
+  notify: Update initramfs
+
+- name: Set environment variables for NVIDIA Wayland
+  ansible.builtin.copy:
+    dest: /etc/profile.d/nvidia-wayland.sh
+    content: |
+      # NVIDIA Wayland environment variables
+      export GBM_BACKEND=nvidia-drm
+      export __GLX_VENDOR_LIBRARY_NAME=nvidia
+      export WLR_NO_HARDWARE_CURSORS=1
+    mode: "0644"
+  become: true
+  when: gpu_vendor | default('') == 'nvidia'

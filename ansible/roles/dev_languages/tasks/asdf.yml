@@ -1,0 +1,125 @@
+---
+# Install asdf version manager and configure language plugins
+
+# --- Install asdf ---
+
+- name: Install asdf via Homebrew (macOS)
+  community.general.homebrew:
+    name: asdf
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+- name: Install asdf dependencies (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name:
+      - curl
+      - git
+    state: present
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Clone asdf repository (Debian/Ubuntu)
+  ansible.builtin.git:
+    repo: https://github.com/asdf-vm/asdf.git
+    dest: "{{ ansible_facts.env.HOME }}/.asdf"
+    version: v0.15.0
+    depth: 1
+  when: ansible_facts['os_family'] == "Debian"
+
+# --- Java plugin ---
+
+- name: Check if asdf java plugin is installed
+  ansible.builtin.shell: |
+    set -o pipefail
+    {{ asdf_bin_path }}/asdf plugin list 2>/dev/null | grep -q '^java$'
+  args:
+    executable: /bin/bash
+  register: asdf_java_plugin_check
+  changed_when: false
+  failed_when: false
+  when: asdf_java_enabled | default(false)
+
+- name: Add asdf java plugin
+  ansible.builtin.shell: "{{ asdf_bin_path }}/asdf plugin add java"
+  args:
+    executable: /bin/bash
+  changed_when: true
+  when:
+    - asdf_java_enabled | default(false)
+    - asdf_java_plugin_check.rc != 0
+
+- name: Check installed Java versions via asdf
+  ansible.builtin.shell: "{{ asdf_bin_path }}/asdf list java 2>/dev/null"
+  args:
+    executable: /bin/bash
+  register: asdf_java_installed
+  changed_when: false
+  failed_when: false
+  when: asdf_java_enabled | default(false)
+
+- name: Install Java versions via asdf
+  ansible.builtin.shell: "{{ asdf_bin_path }}/asdf install java {{ item }}"
+  args:
+    executable: /bin/bash
+  changed_when: true
+  loop: "{{ asdf_java_versions }}"
+  when:
+    - asdf_java_enabled | default(false)
+    - item not in (asdf_java_installed.stdout | default(''))
+
+- name: Set global default Java version via asdf
+  ansible.builtin.shell: "{{ asdf_bin_path }}/asdf set --home java {{ asdf_java_default }}"
+  args:
+    executable: /bin/bash
+  register: asdf_java_set_result
+  changed_when: false
+  when: asdf_java_enabled | default(false)
+
+# --- Node.js plugin ---
+
+- name: Check if asdf nodejs plugin is installed
+  ansible.builtin.shell: |
+    set -o pipefail
+    {{ asdf_bin_path }}/asdf plugin list 2>/dev/null | grep -q '^nodejs$'
+  args:
+    executable: /bin/bash
+  register: asdf_nodejs_plugin_check
+  changed_when: false
+  failed_when: false
+  when: asdf_nodejs_enabled | default(false)
+
+- name: Add asdf nodejs plugin
+  ansible.builtin.shell: "{{ asdf_bin_path }}/asdf plugin add nodejs"
+  args:
+    executable: /bin/bash
+  changed_when: true
+  when:
+    - asdf_nodejs_enabled | default(false)
+    - asdf_nodejs_plugin_check.rc != 0
+
+- name: Check installed Node.js versions via asdf
+  ansible.builtin.shell: "{{ asdf_bin_path }}/asdf list nodejs 2>/dev/null"
+  args:
+    executable: /bin/bash
+  register: asdf_nodejs_installed
+  changed_when: false
+  failed_when: false
+  when: asdf_nodejs_enabled | default(false)
+
+- name: Install Node.js versions via asdf
+  ansible.builtin.shell: "{{ asdf_bin_path }}/asdf install nodejs {{ item }}"
+  args:
+    executable: /bin/bash
+  changed_when: true
+  loop: "{{ asdf_nodejs_versions }}"
+  when:
+    - asdf_nodejs_enabled | default(false)
+    - item not in (asdf_nodejs_installed.stdout | default(''))
+
+- name: Set global default Node.js version via asdf
+  ansible.builtin.shell: "{{ asdf_bin_path }}/asdf set --home nodejs {{ asdf_nodejs_default }}"
+  args:
+    executable: /bin/bash
+  register: asdf_nodejs_set_result
+  changed_when: false
+  when: asdf_nodejs_enabled | default(false)

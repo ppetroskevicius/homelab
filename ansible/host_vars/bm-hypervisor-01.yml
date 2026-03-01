@@ -1,0 +1,85 @@
+---
+# Physical network interface and bridge configuration
+physical_interface: enp0s25
+bridge_ip: 192.168.20.20
+gateway: 192.168.20.1
+
+# Local NVMe storage for KVM VMs
+local_storage:
+  device: /dev/disk/by-id/nvme-Samsung_SSD_980_1TB_S649NL0T810329E-part1
+  fstype: ext4
+  mountpoint: /nvmedata
+  mount_opts: defaults,noatime
+
+# ZFS pool configurations with stable /dev/disk/by-id/ paths
+zfs_pools:
+  - name: ssdpool
+    type: raidz1
+    devices:
+      - /dev/disk/by-id/ata-CT1000MX500SSD1_2230E64E885C
+      - /dev/disk/by-id/ata-CT1000MX500SSD1_2230E64E886B
+      - /dev/disk/by-id/ata-CT1000MX500SSD1_2245E6846C25
+      - /dev/disk/by-id/ata-CT1000MX500SSD1_2230E64E8873
+      - /dev/disk/by-id/ata-CT1000MX500SSD1_2230E64E8881
+    mountpoint: /ssdpool/data
+    nfs_export: true
+    properties:
+      compression: lz4
+      atime: "off"
+
+  - name: hddmirror
+    type: mirror
+    devices:
+      - /dev/disk/by-id/ata-TOSHIBA_MD04ACA200_36KEK42FFSIA
+      - /dev/disk/by-id/ata-TOSHIBA_MD04ACA200_36KIK0RAFSIA
+    mountpoint: /hddmirror/backups
+    nfs_export: true
+    properties:
+      compression: lz4
+      atime: "off"
+
+  - name: hddsingle
+    type: single
+    devices:
+      - /dev/disk/by-id/ata-TOSHIBA_MN06ACA800_50A0A0BQF5CG
+    mountpoint: /hddsingle/scratch
+    nfs_export: true
+    properties:
+      compression: lz4
+      atime: "off"
+
+# NFS export configuration
+nfs_exports:
+  - path: /ssdpool/data
+    network: 192.168.20.0/24
+    options: rw,sync,no_subtree_check
+  - path: /hddmirror/backups
+    network: 192.168.20.0/24
+    options: rw,sync,no_subtree_check
+  - path: /hddsingle/scratch
+    network: 192.168.20.0/24
+    options: rw,sync,no_subtree_check
+
+# =============================================================================
+# GPU Passthrough Configuration (Optional)
+# =============================================================================
+# NVIDIA GTX 960 - 2GB VRAM (limited use for ML due to low VRAM)
+# Consider enabling only if needed for basic GPU testing
+#
+# To find actual PCI slot and device IDs, run:
+#   lspci -nn | grep -i nvidia
+# =============================================================================
+
+gpu_passthrough:
+  enabled: true
+  cpu_vendor: intel
+
+gpu_passthrough_devices:
+  # NVIDIA GTX 960 - 2GB VRAM
+  # Verified PCI slots from IOMMU group output
+  - name: "NVIDIA GTX 960"
+    pci_slot: "0000:03:00.0"
+    vendor_id: "10de"              # NVIDIA vendor ID
+    device_id: "1401"              # GTX 960 device ID
+    audio_pci_slot: "0000:03:00.1"
+    audio_device_id: "0fba"

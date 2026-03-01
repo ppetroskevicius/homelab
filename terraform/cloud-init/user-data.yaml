@@ -1,0 +1,37 @@
+#cloud-config
+# User-data template for VM initialization
+
+hostname: ${hostname}
+fqdn: ${hostname}.local
+manage_etc_hosts: true
+
+users:
+  - name: ${username}
+    groups: [sudo, docker]
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+# Disable password authentication
+ssh_pwauth: false
+
+# Package updates and installation
+package_update: true
+package_upgrade: true
+packages:
+  - qemu-guest-agent
+  - curl
+  - wget
+  - git
+  - vim
+
+# Enable qemu-guest-agent for better VM management
+runcmd:
+  - systemctl enable --now qemu-guest-agent
+
+# Set timezone
+timezone: Asia/Tokyo
+
+# Final message
+final_message: "Cloud-init completed for ${hostname} after $UPTIME seconds"

@@ -1,0 +1,28 @@
+{{- if eq .chezmoi.os "darwin" }}
+sourceDir = "{{ .chezmoi.homeDir }}/fun/homelab"
+{{- else }}
+sourceDir = "/home/fastctl/fun/homelab"
+{{- end }}
+
+[git]
+    autoCommit = false
+    autoPush = false
+
+[data]
+{{- if eq .chezmoi.os "darwin" }}
+    machine_type = "desktop"
+    is_work = true
+{{- else if hasPrefix "dt-" .chezmoi.hostname }}
+    machine_type = "desktop"
+    is_work = false
+{{- else }}
+    machine_type = "server"
+    is_work = false
+{{- end }}
+
+{{- if hasPrefix "dt-" .chezmoi.hostname }}
+
+[onepassword]
+    mode = "account"
+    prompt = true
+{{- end }}

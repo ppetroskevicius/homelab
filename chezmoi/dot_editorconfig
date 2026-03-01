@@ -1,0 +1,59 @@
+# http://editorconfig.org
+root = true
+
+# --- Global Defaults ---
+# Applies to all files unless overridden below
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 4
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# --- Web Development (JS, TS, JSON, HTML, CSS, YAML) ---
+# Modern web standards usually prefer 2 spaces
+[*.{js,jsx,ts,tsx,json,html,css,scss,yml,yaml,vue,svelte}]
+indent_size = 2
+
+# --- Shell Scripts ---
+# Shell style guides prefer 2 spaces
+[*.{sh,bash}]
+indent_size = 2
+
+# --- Python ---
+# Python standard (PEP 8) strictly requires 4 spaces
+[*.py]
+indent_style = space
+indent_size = 4
+
+# --- JVM Languages ---
+# Kotlin and Java conventions use 4 spaces
+[*.{java,kt,kts}]
+indent_style = space
+indent_size = 4
+
+# --- Rust ---
+# Rust standard (rustfmt) requires 4 spaces
+[*.rs]
+indent_style = space
+indent_size = 4
+
+# --- Go ---
+# Go standard (`gofmt`) strictly requires Tabs
+[*.go]
+indent_style = tab
+
+# --- Configuration Files ---
+[*.toml]
+indent_size = 2
+
+# --- Makefiles ---
+# Makefiles MUST use Tabs for indentation
+[{Makefile,**.mk}]
+indent_style = tab
+
+# --- Markdown ---
+# Don't trim trailing whitespace as it indicates a line break in MD
+[*.{md,markdown}]
+trim_trailing_whitespace = false

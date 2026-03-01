@@ -1,0 +1,55 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(~/.zshrc)",
+      "Read(~/.bashrc)",
+      "Read(~/.config/**)",
+      "Read(~/Documents/**)",
+      "Read(~/Projects/**)",
+      "Read(/etc/hosts)",
+      "Read(/etc/group)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(which:*)",
+      "Bash(pwd:*)",
+      "Bash(echo:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git branch:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run test:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker images:*)",
+      "Bash(kubectl get:*)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(rm:*)",
+      "Bash(sudo:*)",
+      "Bash(chmod:*)",
+      "Bash(chown:*)",
+      "Edit(**)",
+      "Write(**)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)",
+      "Read(~/.ssh/id_*)",
+      "Read(~/.aws/credentials)",
+      "Read(~/.config/op/**)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "WebFetch"
+    ],
+    "additionalDirectories": [],
+    "defaultMode": "default"
+  },
+  "env": {},
+  "includeCoAuthoredBy": false,
+  "cleanupPeriodDays": 30
+}

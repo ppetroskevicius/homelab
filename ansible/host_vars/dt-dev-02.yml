@@ -1,0 +1,59 @@
+---
+# Dell XPS 15 9530 - Secondary development laptop
+# Hardware discovered via swaymsg, pactl, ip link, lspci
+
+# GPU Configuration
+# Intel UHD 630 (integrated) + NVIDIA GTX 1050 Ti Mobile (dedicated)
+gpu_vendor: nvidia
+gpu_driver_package:
+  - nvidia-driver-535
+  - nvidia-utils-535
+
+# Display Configuration (swaymsg -t get_outputs)
+# Sharp 4K panel (3840x2160)
+displays:
+  primary: eDP-1           # Built-in Sharp 4K display
+  # external: TBD          # Add after discovery with dock
+
+# Display layout for sway config
+display_config:
+  - output: eDP-1
+    position: "0,0"
+    scale: "2.0"           # 4K at 2x scaling = effective 1920x1080
+
+# Workspace assignments (single display default)
+workspace_outputs:
+  1: eDP-1
+  2: eDP-1
+  3: eDP-1
+  4: eDP-1
+  5: eDP-1
+  6: eDP-1
+  7: eDP-1
+  8: eDP-1
+  9: eDP-1
+  10: eDP-1
+
+# Input Devices (swaymsg -t get_inputs)
+# Wacom touchscreen digitizer (finger + pen support)
+touchscreen_id: "1386:18575:Wacom_HID_488F_Finger"
+
+# Audio Configuration (pactl list sinks short)
+audio_sinks:
+  speakers: "alsa_output.pci-0000_00_1f.3.analog-stereo"
+  # dock: "TBD"    # Add after discovery with Dell dock
+
+# Notification output (for mako)
+notification_output: eDP-1
+
+# Network Interfaces (from netplan config)
+# Dell XPS 15 has no built-in ethernet port
+notebook_wifi: wlp59s0
+notebook_ethernet: ""
+# External ethernet adapters
+dock_ethernet: enx6c1ff725437b
+usb_dongle_ethernet: enx6c1ff7231645
+
+# Fingerprint Scanner
+# Dell XPS uses Goodix fingerprint reader
+# May require additional setup - check fprintd compatibility

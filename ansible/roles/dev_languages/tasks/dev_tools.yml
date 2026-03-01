@@ -1,0 +1,53 @@
+---
+# Install development tools: lefthook, ktlint
+
+# --- lefthook (git hooks manager) ---
+
+- name: Install lefthook (macOS)
+  community.general.homebrew:
+    name: lefthook
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+- name: Install lefthook via Go (Debian/Ubuntu)
+  ansible.builtin.shell: |
+    export PATH="/usr/lib/go/bin:{{ ansible_facts.env.HOME }}/go/bin:$PATH"
+    export GOPATH="{{ ansible_facts.env.HOME }}/go"
+    go install github.com/evilmartians/lefthook@latest
+  args:
+    executable: /bin/bash
+    creates: "{{ ansible_facts.env.HOME }}/go/bin/lefthook"
+  when: ansible_facts['os_family'] == "Debian"
+
+# --- ktlint (Kotlin linter) ---
+
+- name: Install ktlint (macOS)
+  community.general.homebrew:
+    name: ktlint
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+- name: Check if ktlint is installed (Debian/Ubuntu)
+  ansible.builtin.stat:
+    path: /usr/local/bin/ktlint
+  register: ktlint_check
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Get latest ktlint release version (Debian/Ubuntu)
+  ansible.builtin.uri:
+    url: https://api.github.com/repos/pinterest/ktlint/releases/latest
+    return_content: true
+  register: ktlint_release
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - not (ktlint_check.stat.exists | default(false))
+
+- name: Download ktlint binary (Debian/Ubuntu)
+  ansible.builtin.get_url:
+    url: "https://github.com/pinterest/ktlint/releases/download/{{ ktlint_release.json.tag_name }}/ktlint"
+    dest: /usr/local/bin/ktlint
+    mode: '0755'
+  become: true
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - not (ktlint_check.stat.exists | default(false))

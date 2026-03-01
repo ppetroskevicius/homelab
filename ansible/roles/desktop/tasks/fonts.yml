@@ -1,0 +1,38 @@
+---
+# Install Nerd Fonts for terminal and editor use
+
+# Linux: Download and install to ~/.local/share/fonts
+- name: Create fonts directory (Linux)
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/.local/share/fonts"
+    state: directory
+    mode: '0755'
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Download and install Nerd Fonts (Linux)
+  ansible.builtin.unarchive:
+    src: "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.3.0/{{ item }}.zip"
+    dest: "{{ ansible_facts.env.HOME }}/.local/share/fonts"
+    remote_src: yes
+    creates: "{{ ansible_facts.env.HOME }}/.local/share/fonts/{{ item }}NerdFont-Regular.ttf"
+  loop: "{{ nerd_fonts }}"
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Update font cache (Linux)
+  ansible.builtin.shell: fc-cache -fv
+  changed_when: false
+  when: ansible_facts['os_family'] == "Debian"
+
+# macOS: Install via Homebrew casks
+- name: Install Nerd Fonts (macOS)
+  community.general.homebrew_cask:
+    name:
+      - font-fira-code-nerd-font
+      - font-meslo-lg-nerd-font
+      - font-hack-nerd-font
+      - font-0xproto-nerd-font
+      - font-anonymice-nerd-font
+      - font-intone-mono-nerd-font
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+  ignore_errors: true

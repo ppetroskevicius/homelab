@@ -1,0 +1,71 @@
+# site.yml
+---
+# ==========================================
+# 1. Common Configuration (Runs on EVERYTHING)
+# Replaces: 01_update, 02_credentials, 03_shell, 04_dotfiles, 05_system
+# ==========================================
+- name: Apply Common Base Configuration
+  hosts: all
+  become: "{{ not (is_work_mac | default(false)) }}"
+  vars:
+    ansible_become_password: >-
+      {{ omit if (is_work_mac | default(false))
+      else lookup('community.general.onepassword', 'env-vars', field='ansible-become-password', vault='build') }}
+  roles:
+    - common
+    - credentials
+    - dotfiles
+
+# ==========================================
+# 2. Hypervisor Setup (bm-hypervisor)
+# Replaces: 06_hypervisor, 07_storage
+# ==========================================
+- name: Configure Hypervisors
+  hosts: bm_hypervisor
+  become: true
+  vars:
+    ansible_become_password: "{{ lookup('community.general.onepassword', 'env-vars', field='ansible-become-password', vault='build') }}"
+  roles:
+    - hypervisor
+    - storage
+
+# ==========================================
+# 2b. GPU Passthrough (bm-hypervisor with GPUs)
+# Configures IOMMU and VFIO for PCI passthrough
+# ==========================================
+- name: Configure GPU Passthrough on Hypervisors
+  hosts: bm_hypervisor
+  become: true
+  vars:
+    ansible_become_password: "{{ lookup('community.general.onepassword', 'env-vars', field='ansible-become-password', vault='build') }}"
+  roles:
+    - role: gpu_passthrough
+      when: gpu_passthrough is defined and gpu_passthrough.enabled | default(false)
+
+# ==========================================
+# 3. Container & K8s Nodes (vm-k8s-node, vm-dev-container)
+# Replaces: 08_containers
+# ==========================================
+- name: Configure Container Hosts (K3s and Docker)
+  hosts: vm_k8s_node:vm_dev_container
+  become: true
+  vars:
+    ansible_become_password: "{{ lookup('community.general.onepassword', 'env-vars', field='ansible-become-password', vault='build') }}"
+  roles:
+    - container
+
+# ==========================================
+# 4. Desktop Environment (dt-dev)
+# Replaces: 11_desktop, 12_desktop_apps, 09_languages
+# ==========================================
+- name: Configure Development Desktops
+  hosts: dt_dev
+  become: false # Many desktop tools (brew, dotfiles) shouldn't run as root
+  vars:
+    ansible_become_password: >-
+      {{ omit if (is_work_mac | default(false))
+      else lookup('community.general.onepassword', 'env-vars', field='ansible-become-password', vault='build') }}
+  roles:
+    - dev_languages  # FIRST - provides Rust/Cargo, pnpm needed by other roles
+    - desktop        # Uses cargo for i3status-rs, alacritty, etc.
+    - cloud_tools    # Uses pnpm for firebase, playwright

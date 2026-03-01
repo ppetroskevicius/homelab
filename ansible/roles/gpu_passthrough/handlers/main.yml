@@ -1,0 +1,32 @@
+---
+# =============================================================================
+# Handlers for GPU Passthrough Role
+# =============================================================================
+
+- name: Update GRUB
+  ansible.builtin.command:
+    cmd: update-grub
+  listen: Update GRUB
+
+- name: Update initramfs
+  ansible.builtin.command:
+    cmd: update-initramfs -u
+  listen: Update initramfs
+
+- name: Notify reboot required
+  ansible.builtin.debug:
+    msg: |
+      ============================================================
+      REBOOT REQUIRED
+      ============================================================
+      GPU passthrough configuration has been updated.
+      Please reboot the system for changes to take effect:
+        sudo reboot
+
+      After reboot, verify IOMMU is enabled:
+        dmesg | grep -i -E 'DMAR|IOMMU|AMD-Vi'
+
+      Verify GPUs are bound to vfio-pci:
+        lspci -nnk | grep -A2 VGA
+      ============================================================
+  listen: Notify reboot required

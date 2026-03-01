@@ -1,0 +1,32 @@
+---
+# Install Deno runtime
+
+- name: Install Deno (macOS)
+  community.general.homebrew:
+    name: deno
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+- name: Check if Deno is installed (Debian/Ubuntu)
+  ansible.builtin.stat:
+    path: "{{ ansible_facts.env.HOME }}/.deno/bin/deno"
+  register: deno_check
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Download Deno install script (Debian/Ubuntu)
+  ansible.builtin.get_url:
+    url: https://deno.land/install.sh
+    dest: /tmp/deno-install.sh
+    mode: '0755'
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - not (deno_check.stat.exists | default(false))
+
+- name: Install Deno (Debian/Ubuntu)
+  ansible.builtin.shell: /tmp/deno-install.sh
+  args:
+    executable: /bin/bash
+    creates: "{{ ansible_facts.env.HOME }}/.deno/bin/deno"
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - not (deno_check.stat.exists | default(false))

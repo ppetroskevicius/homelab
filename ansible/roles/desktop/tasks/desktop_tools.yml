@@ -1,0 +1,79 @@
+---
+# Install desktop tools via cargo (Linux only)
+# These require Rust to be installed from dev_languages role
+
+- name: Install build dependencies for cargo tools
+  ansible.builtin.apt:
+    name: "{{ desktop_build_deps }}"
+    state: present
+  become: true
+
+# i3status-rs (build from source for latest features)
+- name: Clone i3status-rust repository
+  ansible.builtin.git:
+    repo: https://github.com/greshake/i3status-rust.git
+    dest: /tmp/i3status-rust
+    depth: 1
+    version: master
+  register: i3status_clone
+
+- name: Build and install i3status-rs
+  ansible.builtin.shell: |
+    source {{ ansible_facts.env.HOME }}/.cargo/env
+    cd /tmp/i3status-rust
+    cargo install --path . --locked
+  args:
+    executable: /bin/bash
+    creates: "{{ ansible_facts.env.HOME }}/.cargo/bin/i3status-rs"
+
+# Alacritty (build from source for Wayland support)
+- name: Clone Alacritty repository
+  ansible.builtin.git:
+    repo: https://github.com/alacritty/alacritty.git
+    dest: /tmp/alacritty
+    depth: 1
+    version: master
+  register: alacritty_clone
+
+- name: Build and install Alacritty
+  ansible.builtin.shell: |
+    source {{ ansible_facts.env.HOME }}/.cargo/env
+    cd /tmp/alacritty
+    cargo install --path alacritty --locked
+  args:
+    executable: /bin/bash
+    creates: "{{ ansible_facts.env.HOME }}/.cargo/bin/alacritty"
+
+# Install other cargo tools directly
+- name: Install kickoff via cargo
+  ansible.builtin.shell: |
+    source {{ ansible_facts.env.HOME }}/.cargo/env
+    cargo install kickoff
+  args:
+    executable: /bin/bash
+    creates: "{{ ansible_facts.env.HOME }}/.cargo/bin/kickoff"
+
+- name: Install wl-gammarelay-rs via cargo
+  ansible.builtin.shell: |
+    source {{ ansible_facts.env.HOME }}/.cargo/env
+    cargo install wl-gammarelay-rs
+  args:
+    executable: /bin/bash
+    creates: "{{ ansible_facts.env.HOME }}/.cargo/bin/wl-gammarelay-rs"
+
+- name: Install oculante via cargo
+  ansible.builtin.shell: |
+    source {{ ansible_facts.env.HOME }}/.cargo/env
+    cargo install oculante
+  args:
+    executable: /bin/bash
+    creates: "{{ ansible_facts.env.HOME }}/.cargo/bin/oculante"
+
+# Cleanup
+- name: Clean up cloned repositories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /tmp/i3status-rust
+    - /tmp/alacritty

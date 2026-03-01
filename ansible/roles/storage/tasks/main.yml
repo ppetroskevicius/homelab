@@ -1,0 +1,166 @@
+---
+# =============================================================================
+# ZFS Pool Creation (bm-hypervisor-01 only)
+# =============================================================================
+
+- name: Install ZFS utilities (storage server)
+  ansible.builtin.apt:
+    name:
+      - zfsutils-linux
+      - nfs-kernel-server
+    state: present
+  become: true
+  when:
+    - inventory_hostname == 'bm-hypervisor-01'
+    - ansible_facts['os_family'] == "Debian"
+
+- name: Check if ZFS pools exist
+  ansible.builtin.command: zpool list "{{ item.name }}"
+  loop: "{{ zfs_pools }}"
+  register: zpool_check
+  failed_when: false
+  changed_when: false
+  become: true
+  when:
+    - inventory_hostname == 'bm-hypervisor-01'
+    - zfs_pools is defined
+
+- name: Create ZFS pools
+  ansible.builtin.command: >
+    zpool create
+    {{ item.item.name }}
+    {% if item.item.type == 'raidz1' %}raidz{% endif %}
+    {% if item.item.type == 'mirror' %}mirror{% endif %}
+    -o ashift=12
+    -O compression={{ item.item.properties.compression }}
+    -O atime={{ item.item.properties.atime }}
+    -m {{ item.item.mountpoint }}
+    {{ item.item.devices | join(' ') }}
+  loop: "{{ zpool_check.results }}"
+  become: true
+  when:
+    - inventory_hostname == 'bm-hypervisor-01'
+    - zfs_pools is defined
+    - item.rc != 0
+
+# =============================================================================
+# NFS Server Configuration (bm-hypervisor-01 only)
+# =============================================================================
+
+- name: Deploy NFS exports configuration
+  ansible.builtin.template:
+    src: exports.j2
+    dest: /etc/exports
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  when:
+    - inventory_hostname == 'bm-hypervisor-01'
+    - nfs_exports is defined
+  notify: Reload NFS exports
+
+- name: Enable and start NFS server
+  ansible.builtin.systemd:
+    name: nfs-kernel-server
+    enabled: true
+    state: started
+  become: true
+  when: inventory_hostname == 'bm-hypervisor-01'
+
+# =============================================================================
+# NFS Client Configuration (bm-hypervisor-02/03)
+# =============================================================================
+
+- name: Install NFS client packages
+  ansible.builtin.apt:
+    name: nfs-common
+    state: present
+  become: true
+  when:
+    - inventory_hostname in ['bm-hypervisor-02', 'bm-hypervisor-03']
+    - ansible_facts['os_family'] == "Debian"
+
+- name: Create NFS mount directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    mode: '0755'
+  loop: "{{ nfs_mounts }}"
+  become: true
+  when:
+    - inventory_hostname in ['bm-hypervisor-02', 'bm-hypervisor-03']
+    - nfs_mounts is defined
+
+- name: Mount NFS shares
+  ansible.posix.mount:
+    src: "{{ item.src }}"
+    path: "{{ item.path }}"
+    fstype: "{{ item.fstype }}"
+    opts: "{{ item.opts }}"
+    state: mounted
+  loop: "{{ nfs_mounts }}"
+  become: true
+  when:
+    - inventory_hostname in ['bm-hypervisor-02', 'bm-hypervisor-03']
+    - nfs_mounts is defined
+
+# =============================================================================
+# Local NVMe Storage (all hypervisors)
+# =============================================================================
+
+- name: Install XFS tools (bm-hypervisor-03)
+  ansible.builtin.apt:
+    name: xfsprogs
+    state: present
+  become: true
+  when:
+    - local_storage is defined
+    - local_storage.fstype == 'xfs'
+    - ansible_facts['os_family'] == "Debian"
+
+- name: Check if local storage device has filesystem
+  ansible.builtin.command: blkid -o value -s TYPE {{ local_storage.device }}
+  register: local_storage_fstype
+  failed_when: false
+  changed_when: false
+  become: true
+  when: local_storage is defined
+
+- name: Format local storage device (ext4)
+  community.general.filesystem:
+    fstype: ext4
+    dev: "{{ local_storage.device }}"
+  become: true
+  when:
+    - local_storage is defined
+    - local_storage.fstype == 'ext4'
+    - local_storage_fstype.stdout == ''
+
+- name: Format local storage device (xfs)
+  community.general.filesystem:
+    fstype: xfs
+    dev: "{{ local_storage.device }}"
+  become: true
+  when:
+    - local_storage is defined
+    - local_storage.fstype == 'xfs'
+    - local_storage_fstype.stdout == ''
+
+- name: Create local storage mountpoint
+  ansible.builtin.file:
+    path: "{{ local_storage.mountpoint }}"
+    state: directory
+    mode: '0755'
+  become: true
+  when: local_storage is defined
+
+- name: Mount local storage
+  ansible.posix.mount:
+    src: "{{ local_storage.device }}"
+    path: "{{ local_storage.mountpoint }}"
+    fstype: "{{ local_storage.fstype }}"
+    opts: "{{ local_storage.mount_opts }}"
+    state: mounted
+  become: true
+  when: local_storage is defined

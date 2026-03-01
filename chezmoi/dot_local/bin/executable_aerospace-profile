@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CONFIG_DIR="$HOME/.config/aerospace"
+TARGET="$HOME/.aerospace.toml"
+PROFILES=("home" "office" "villa" "cafe")
+
+usage() {
+    echo "Usage: aerospace-profile <profile>"
+    echo ""
+    echo "Profiles:"
+    for p in "${PROFILES[@]}"; do
+        desc=$(head -1 "$CONFIG_DIR/monitors-${p}.toml" | sed 's/^# //')
+        echo "  $p  — $desc"
+    done
+    echo ""
+    echo "Current: $(readlink "$TARGET" 2>/dev/null || echo 'not a symlink')"
+    exit 1
+}
+
+[[ $# -ne 1 ]] && usage
+
+profile="$1"
+monitor_file="$CONFIG_DIR/monitors-${profile}.toml"
+
+if [[ ! -f "$monitor_file" ]]; then
+    echo "Error: unknown profile '$profile'"
+    echo "Available: ${PROFILES[*]}"
+    exit 1
+fi
+
+# Combine base config + monitor profile into the target config
+cat "$CONFIG_DIR/base.toml" "$monitor_file" > "$TARGET"
+
+echo "Switched to profile: $profile"
+head -1 "$monitor_file" | sed 's/^# //'
+
+# Reload AeroSpace if it's running
+if pgrep -q AeroSpace; then
+    aerospace reload-config
+    echo "AeroSpace config reloaded."
+else
+    echo "AeroSpace is not running. Config will apply on next launch."
+fi

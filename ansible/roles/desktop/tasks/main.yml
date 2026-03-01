@@ -1,0 +1,35 @@
+---
+# Main orchestration for desktop role
+# Conditional by OS - most tasks are Linux-only
+
+- name: Install GPU drivers
+  ansible.builtin.include_tasks: gpu_drivers.yml
+  when: ansible_facts['os_family'] == "Debian"
+
+# Sway FIRST - deploys bootstrap config with foot terminal (apt-installed)
+# This allows user to log in before cargo tools are built
+- name: Install Sway/Wayland environment
+  ansible.builtin.include_tasks: sway_wayland.yml
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Install fonts
+  ansible.builtin.include_tasks: fonts.yml
+
+# Desktop tools AFTER sway - builds alacritty, kickoff via cargo (takes longer)
+- name: Install desktop tools (cargo builds)
+  ansible.builtin.include_tasks: desktop_tools.yml
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Configure audio and Bluetooth
+  ansible.builtin.include_tasks: audio_pipewire.yml
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Install desktop applications
+  ansible.builtin.include_tasks: desktop_apps.yml
+
+- name: Set up Alacritty themes
+  ansible.builtin.include_tasks: alacritty_themes.yml
+
+- name: Configure rclone sync with Google Drive
+  ansible.builtin.include_tasks: rclone_sync.yml
+  when: not (is_work_mac | default(false))

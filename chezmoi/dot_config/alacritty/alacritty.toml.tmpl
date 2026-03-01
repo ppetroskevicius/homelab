@@ -1,0 +1,30 @@
+general.import = ["~/.config/alacritty/themes/themes/ashes_dark.toml"]
+
+[font]
+size = 10.0
+normal.family = "FiraCode Nerd Font"
+bold.family = "FiraCode Nerd Font"
+italic.family = "FiraCode Nerd Font"
+bold_italic.family = "FiraCode Nerd Font"
+
+[window]
+opacity = 0.93
+blur = true
+decorations = "None"
+padding = { x = 4, y = 4 }
+
+[selection]
+save_to_clipboard = true
+
+[terminal]
+osc52 = "CopyPaste"
+shell.program = "{{ lookPath "tmux" }}"
+shell.args = ["new-session", "-A", "-s", "main"]
+
+[keyboard]
+bindings = [
+  { key = "N", mods = "Super", action = "CreateNewWindow" },
+  { key = "C", mods = "Super", action = "Copy" },
+  { key = "V", mods = "Super", action = "Paste" },
+  { key = "Return", mods = "Shift", chars = "\u001b\r" },
+]

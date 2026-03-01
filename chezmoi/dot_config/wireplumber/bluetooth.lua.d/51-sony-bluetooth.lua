@@ -1,0 +1,55 @@
+-- WirePlumber Bluetooth configuration
+-- Optimized for Sony WH-1000XM5 headphones
+
+-- Bluetooth monitor properties for high-quality audio
+bluez_monitor.properties = {
+    -- Enable high-quality SBC-XQ codec
+    ["bluez5.enable-sbc-xq"] = true,
+
+    -- Enable mSBC for HFP wideband speech
+    ["bluez5.enable-msbc"] = true,
+
+    -- Enable hardware volume control
+    ["bluez5.enable-hw-volume"] = true,
+
+    -- Enable AAC codec (if available)
+    ["bluez5.enable-aac"] = false,
+
+    -- Codec preference order (highest quality first)
+    ["bluez5.codecs"] = "[ ldac aac sbc_xq sbc ]",
+
+    -- Headset roles for calls
+    ["bluez5.headset-roles"] = "[ hsp_hs hsp_ag hfp_hf hfp_ag ]",
+
+    -- Auto-switch between A2DP and HFP profiles
+    ["bluez5.autoswitch-profile"] = true,
+}
+
+-- Bluetooth device rules
+bluez_monitor.rules = {
+    -- Rule for Sony WH-1000XM5
+    {
+        matches = {
+            {
+                { "device.name", "matches", "bluez_card.88_C9_E8_DC_ED_8E" },
+            },
+        },
+        apply_properties = {
+            -- Prefer A2DP for high quality audio
+            ["bluez5.auto-connect"] = "[ a2dp_sink ]",
+            -- Device description
+            ["device.description"] = "Sony WH-1000XM5",
+        },
+    },
+    -- Generic rule for all Bluetooth audio devices
+    {
+        matches = {
+            {
+                { "device.name", "matches", "bluez_card.*" },
+            },
+        },
+        apply_properties = {
+            ["bluez5.auto-connect"] = "[ a2dp_sink hfp_hf ]",
+        },
+    },
+}

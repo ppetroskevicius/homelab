@@ -1,0 +1,78 @@
+---
+# =============================================================================
+# KVM/Libvirt Installation
+# =============================================================================
+
+- name: Install KVM and libvirt packages
+  ansible.builtin.apt:
+    name:
+      - qemu-kvm
+      - libvirt-daemon-system
+      - libvirt-clients
+      - bridge-utils
+    state: present
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Add user to libvirt group
+  ansible.builtin.user:
+    name: "{{ ansible_facts['user_id'] }}"
+    groups: libvirt
+    append: true
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Enable and start libvirtd service
+  ansible.builtin.systemd:
+    name: libvirtd
+    enabled: true
+    state: started
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Set LIBVIRT_DEFAULT_URI environment variable
+  ansible.builtin.lineinfile:
+    path: /etc/environment
+    line: "LIBVIRT_DEFAULT_URI=qemu:///system"
+    create: true
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+# =============================================================================
+# Network Bridge Configuration
+# WARNING: This will drop SSH connections!
+# =============================================================================
+
+- name: Check if br0 bridge already exists
+  ansible.builtin.command: ip link show br0
+  register: br0_check
+  failed_when: false
+  changed_when: false
+
+- name: Backup existing Netplan configuration
+  ansible.builtin.copy:
+    src: /etc/netplan/
+    dest: /etc/netplan.backup/
+    remote_src: true
+  become: true
+  when: br0_check.rc != 0
+
+- name: Deploy Netplan bridge configuration
+  ansible.builtin.template:
+    src: netplan-bridge.yaml.j2
+    dest: /etc/netplan/01-netcfg.yaml
+    owner: root
+    group: root
+    mode: '0600'
+  become: true
+  when:
+    - br0_check.rc != 0
+    - physical_interface is defined
+    - bridge_ip is defined
+  notify: Apply Netplan
+
+- name: Validate Netplan configuration syntax
+  ansible.builtin.command: netplan generate
+  become: true
+  changed_when: false
+  when: br0_check.rc != 0

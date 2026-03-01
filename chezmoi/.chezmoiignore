@@ -1,0 +1,86 @@
+{{- $isDesktop := or (eq (get . "machine_type") "desktop") (hasPrefix "dt-" .chezmoi.hostname) -}}
+{{- $isWork := and (hasKey . "is_work") .is_work -}}
+
+# === Non-desktop machines: ignore all desktop-specific files ===
+{{- if not $isDesktop }}
+
+# Zsh configs (desktop-only, servers use bash)
+.zshrc
+.zprofile
+
+# 1Password SSH agent
+.config/1Password/
+
+# Window manager and UI
+.config/sway/
+.config/i3status-rust/
+.config/mako/
+.config/alacritty/
+.config/starship.toml
+
+# Development tools (GUI)
+.config/Cursor/
+.config/ruff/
+
+# Cloud CLI configs (desktop-only)
+.aws/
+.config/rclone/
+
+# Audio (desktop-only)
+.config/pipewire/
+.config/wireplumber/
+
+# Laptop power management
+.config/tlp/
+tlp.sh
+
+# Fingerprint / Polkit agent (requires GUI)
+.config/systemd/
+fingerprint.sh
+
+# WireGuard VPN (desktop only for remote access)
+etc_wireguard_gw0.conf
+wireguard.sh
+
+# Alacritty themes
+alacritty_themes.sh
+
+# Chezmoi config (desktop-specific sourceDir)
+.config/chezmoi/
+
+# AeroSpace (macOS tiling WM)
+.config/aerospace/
+.local/bin/aerospace-profile
+
+{{- end }}
+
+# === macOS desktops: ignore Linux-only files ===
+{{- if eq .chezmoi.os "darwin" }}
+.config/sway/
+.config/i3status-rust/
+.config/mako/
+.config/pipewire/
+.config/wireplumber/
+.config/tlp/
+tlp.sh
+.config/systemd/
+fingerprint.sh
+{{- end }}
+
+# === Linux desktops: ignore macOS-only files ===
+{{- if eq .chezmoi.os "linux" }}
+.config/aerospace/
+.local/bin/aerospace-profile
+{{- end }}
+
+# === Work machines: no personal secrets/infra ===
+{{- if $isWork }}
+.config/1Password/
+.config/rclone/
+.aws/
+etc_wireguard_gw0.conf
+wireguard.sh
+.config/Cursor/
+.config/chezmoi/
+.claude/
+{{- end }}

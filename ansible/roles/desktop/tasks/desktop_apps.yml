@@ -1,0 +1,292 @@
+---
+# Install desktop applications (browsers, editors, communication tools)
+
+# Starship prompt (cross-platform)
+- name: Check if starship is installed
+  ansible.builtin.shell: command -v starship
+  register: starship_check
+  changed_when: false
+  failed_when: false
+
+- name: Install Starship prompt (Linux)
+  ansible.builtin.shell: |
+    curl -sS https://starship.rs/install.sh | sh -s -- -y
+  args:
+    creates: /usr/local/bin/starship
+  become: true
+  when:
+    - starship_check.rc != 0
+    - ansible_facts['os_family'] == "Debian"
+
+- name: Install Starship prompt (macOS)
+  community.general.homebrew:
+    name: starship
+    state: present
+  when:
+    - starship_check.rc != 0
+    - ansible_facts['os_family'] == "Darwin"
+
+# 1Password GUI
+- name: Check if 1Password is installed (Linux)
+  ansible.builtin.shell: command -v 1password
+  register: onepassword_check
+  changed_when: false
+  failed_when: false
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Install 1Password (Linux)
+  ansible.builtin.apt:
+    name: 1password
+    state: present
+    update_cache: yes
+  become: true
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - onepassword_check.rc != 0
+
+- name: Install 1Password (macOS)
+  community.general.homebrew_cask:
+    name: 1password
+    state: present
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - not (is_work_mac | default(false))
+
+# Google Chrome
+- name: Check if Chrome is installed (Linux)
+  ansible.builtin.shell: command -v google-chrome
+  register: chrome_check
+  changed_when: false
+  failed_when: false
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Download Google Chrome (Linux)
+  ansible.builtin.get_url:
+    url: https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+    dest: /tmp/google-chrome.deb
+    mode: '0644'
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - chrome_check.rc != 0
+
+- name: Install Google Chrome (Linux)
+  ansible.builtin.apt:
+    deb: /tmp/google-chrome.deb
+  become: true
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - chrome_check.rc != 0
+
+- name: Install Google Chrome (macOS)
+  community.general.homebrew_cask:
+    name: google-chrome
+    state: present
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - not (is_work_mac | default(false))
+
+# Firefox
+- name: Install Firefox (Linux)
+  ansible.builtin.apt:
+    name: firefox
+    state: present
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Install Firefox (macOS)
+  community.general.homebrew_cask:
+    name: firefox
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+# Arc browser (macOS only)
+- name: Check if Arc browser is installed (macOS)
+  ansible.builtin.stat:
+    path: /Applications/Arc.app
+  register: arc_check
+  when: ansible_facts['os_family'] == "Darwin"
+
+- name: Install Arc browser (macOS)
+  community.general.homebrew_cask:
+    name: arc
+    state: present
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - not (arc_check.stat.exists | default(false))
+
+# Cursor IDE
+- name: Check if Cursor is installed (Linux)
+  ansible.builtin.shell: command -v cursor
+  register: cursor_check
+  changed_when: false
+  failed_when: false
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Install Cursor via official install script (Linux)
+  ansible.builtin.shell: curl https://cursor.com/install -fsS | bash
+  args:
+    executable: /bin/bash
+    creates: /usr/bin/cursor
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - cursor_check.rc != 0
+  ignore_errors: true
+
+- name: Install VS Code (macOS)
+  community.general.homebrew_cask:
+    name: visual-studio-code
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+# Claude Code via pnpm
+- name: Check if Claude Code is installed
+  ansible.builtin.shell: |
+    export PNPM_HOME="{{ ansible_facts.env.HOME }}/.local/share/pnpm"
+    export PATH="$PNPM_HOME:$PATH"
+    command -v claude
+  args:
+    executable: /bin/bash
+  register: claude_code_check
+  changed_when: false
+  failed_when: false
+
+- name: Install Claude Code via pnpm
+  ansible.builtin.shell: |
+    export NVM_DIR="{{ ansible_facts.env.HOME }}/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+    export PNPM_HOME="{{ ansible_facts.env.HOME }}/.local/share/pnpm"
+    export PATH="$PNPM_HOME:$PATH"
+    pnpm add -g @anthropic-ai/claude-code
+  args:
+    executable: /bin/bash
+  when: claude_code_check.rc != 0
+
+# Discord
+- name: Check if Discord is installed (Linux)
+  ansible.builtin.shell: command -v discord
+  register: discord_check
+  changed_when: false
+  failed_when: false
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Download Discord (Linux)
+  ansible.builtin.get_url:
+    url: https://discord.com/api/download?platform=linux&format=deb
+    dest: /tmp/discord.deb
+    mode: '0644'
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - discord_check.rc != 0
+
+- name: Install Discord (Linux)
+  ansible.builtin.apt:
+    deb: /tmp/discord.deb
+  become: true
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - discord_check.rc != 0
+
+- name: Install Discord (macOS)
+  community.general.homebrew_cask:
+    name: discord
+    state: present
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - not (is_work_mac | default(false))
+
+# Spotify
+- name: Add Spotify GPG key (Linux)
+  ansible.builtin.shell: |
+    curl -sS https://download.spotify.com/debian/pubkey_C85668DF69375001.gpg | \
+    sudo gpg --dearmor --output /etc/apt/trusted.gpg.d/spotify.gpg
+  args:
+    creates: /etc/apt/trusted.gpg.d/spotify.gpg
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Add Spotify apt repository (Linux)
+  ansible.builtin.apt_repository:
+    repo: "deb http://repository.spotify.com stable non-free"
+    state: present
+    filename: spotify
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Install Spotify (Linux)
+  ansible.builtin.apt:
+    name: spotify-client
+    state: present
+    update_cache: yes
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Install Spotify (macOS)
+  community.general.homebrew_cask:
+    name: spotify
+    state: present
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - not (is_work_mac | default(false))
+
+# Zotero reference manager
+- name: Add Zotero repository (Linux)
+  ansible.builtin.shell: |
+    wget -qO- https://raw.githubusercontent.com/retorquere/zotero-deb/master/install.sh | sudo bash
+  args:
+    creates: /etc/apt/sources.list.d/zotero.list
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+  ignore_errors: true
+
+- name: Install Zotero (Linux)
+  ansible.builtin.apt:
+    name: zotero
+    state: present
+    update_cache: yes
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+  ignore_errors: true
+
+- name: Install Zotero (macOS)
+  community.general.homebrew_cask:
+    name: zotero
+    state: present
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - not (is_work_mac | default(false))
+
+# Remmina remote desktop (Linux only)
+- name: Install Remmina (Linux)
+  ansible.builtin.apt:
+    name: remmina
+    state: present
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+# AeroSpace tiling window manager (macOS only)
+- name: Install AeroSpace (macOS)
+  community.general.homebrew_cask:
+    name: aerospace
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+# Rancher Desktop (macOS only)
+- name: Install Rancher Desktop (macOS)
+  community.general.homebrew_cask:
+    name: rancher
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+# IntelliJ IDEA (macOS only)
+- name: Install IntelliJ IDEA Ultimate (macOS)
+  community.general.homebrew_cask:
+    name: intellij-idea
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+# Alacritty via Homebrew cask (macOS only - Linux builds from source via cargo)
+- name: Install Alacritty (macOS)
+  community.general.homebrew_cask:
+    name: alacritty
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"

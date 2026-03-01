@@ -1,0 +1,299 @@
+---
+# Dotfiles role - handles both desktop (chezmoi) and non-desktop (direct copy) machines
+#
+# Desktop machines (dt-*):
+#   - Clone homelab monorepo
+#   - Initialize chezmoi (user runs 'chezmoi apply' manually after 1Password setup)
+#
+# Non-desktop machines (bm-*, vm-*):
+#   - Copy minimal dotfiles directly via Ansible (no chezmoi)
+#   - Uses SSH agent forwarding from desktop (no local keys)
+
+# Note: Play runs with become: true, so we must explicitly use become: false
+# for user-level tasks and use the actual user's home directory
+
+- name: Set target user fact
+  ansible.builtin.set_fact:
+    target_user: "{{ ansible_facts.env.SUDO_USER | default(ansible_facts['user_id']) }}"
+
+- name: Set user home directory fact
+  ansible.builtin.set_fact:
+    user_home: "/home/{{ target_user }}"
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Set user home directory fact (macOS)
+  ansible.builtin.set_fact:
+    user_home: "/Users/{{ target_user }}"
+  when: ansible_facts['os_family'] == "Darwin"
+
+- name: Determine if this is a desktop machine
+  ansible.builtin.set_fact:
+    is_desktop: "{{ is_desktop | default(false) }}"
+
+# =============================================================================
+# DESKTOP MACHINES (dt-*): Use chezmoi for dotfiles management
+# =============================================================================
+
+- name: Install zsh (desktops only)
+  ansible.builtin.apt:
+    name: zsh
+    state: present
+  become: true
+  when:
+    - is_desktop
+    - ansible_facts['os_family'] == "Debian"
+
+- name: Check if Oh My Zsh is installed
+  ansible.builtin.stat:
+    path: "{{ user_home }}/.oh-my-zsh"
+  register: ohmyzsh_stat
+  become: false
+  when: is_desktop
+
+- name: Install Oh My Zsh
+  ansible.builtin.git:
+    repo: https://github.com/ohmyzsh/ohmyzsh.git
+    dest: "{{ user_home }}/.oh-my-zsh"
+    depth: 1
+  when:
+    - is_desktop
+    - not ohmyzsh_stat.stat.exists
+  become: false
+
+- name: Check if zsh-autosuggestions is installed
+  ansible.builtin.stat:
+    path: "{{ user_home }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
+  register: zsh_autosuggestions_stat
+  become: false
+  when: is_desktop
+
+- name: Install zsh-autosuggestions plugin
+  ansible.builtin.git:
+    repo: https://github.com/zsh-users/zsh-autosuggestions.git
+    dest: "{{ user_home }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
+    depth: 1
+  when:
+    - is_desktop
+    - not zsh_autosuggestions_stat.stat.exists
+  become: false
+
+- name: Change default shell to zsh (desktops only)
+  ansible.builtin.user:
+    name: "{{ target_user }}"
+    shell: /usr/bin/zsh
+  become: true
+  when:
+    - is_desktop
+    - ansible_facts['os_family'] == "Debian"
+
+- name: Ensure .local/bin directory exists (desktops)
+  ansible.builtin.file:
+    path: "{{ user_home }}/.local/bin"
+    state: directory
+    mode: '0755'
+  become: false
+  when: is_desktop
+
+- name: Download chezmoi binary (Linux desktops)
+  ansible.builtin.get_url:
+    url: https://github.com/twpayne/chezmoi/releases/latest/download/chezmoi-linux-amd64
+    dest: "{{ user_home }}/.local/bin/chezmoi"
+    mode: '0755'
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+  become: true
+  when:
+    - is_desktop
+    - ansible_facts['os_family'] == "Debian"
+
+- name: Install chezmoi via Homebrew (macOS desktops)
+  community.general.homebrew:
+    name: chezmoi
+    state: present
+  when:
+    - is_desktop
+    - ansible_facts['os_family'] == "Darwin"
+
+- name: Ensure ~/fun directory exists (desktops)
+  ansible.builtin.file:
+    path: "{{ user_home }}/fun"
+    state: directory
+    mode: '0755'
+  become: false
+  when: is_desktop
+
+- name: Check for stale 1Password SSH config (desktops)
+  ansible.builtin.shell: grep -q "1password/agent.sock" "{{ user_home }}/.ssh/config" 2>/dev/null
+  register: stale_ssh_config
+  failed_when: false
+  changed_when: false
+  become: false
+  when: is_desktop
+
+- name: Warn about stale 1Password SSH config
+  ansible.builtin.debug:
+    msg: |
+      WARNING: {{ user_home }}/.ssh/config contains 1Password agent reference.
+      This may be leftover from previous chezmoi apply.
+      The clone will still work (using forwarded SSH agent), but consider cleaning up:
+        rm -f {{ user_home }}/.ssh/config
+  when:
+    - is_desktop
+    - stale_ssh_config.rc == 0
+
+- name: Check if homelab repo already exists (desktops)
+  ansible.builtin.stat:
+    path: "{{ user_home }}/fun/homelab/.git"
+  register: homelab_repo_stat
+  become: false
+  when: is_desktop
+
+- name: Clone homelab monorepo (desktops)
+  ansible.builtin.git:
+    repo: git@github.com:ppetroskevicius/homelab.git
+    dest: "{{ user_home }}/fun/homelab"
+    accept_hostkey: yes
+  become: false
+  environment: >-
+    {{ {} if (is_work_mac | default(false))
+    else {'GIT_SSH_COMMAND': 'ssh -o IdentityAgent=$SSH_AUTH_SOCK -o StrictHostKeyChecking=accept-new'} }}
+  when:
+    - is_desktop
+    - not homelab_repo_stat.stat.exists
+
+- name: Check if chezmoi is already initialized (desktops)
+  ansible.builtin.stat:
+    path: "{{ user_home }}/.config/chezmoi/chezmoi.toml"
+  register: chezmoi_config_stat
+  become: false
+  when: is_desktop
+
+# Initialize chezmoi WITHOUT --apply
+# User must run 'chezmoi apply' manually after 1Password desktop is installed and signed in
+- name: Initialize chezmoi from local monorepo (desktops)
+  ansible.builtin.command: "chezmoi init --source {{ user_home }}/fun/homelab"
+  when:
+    - is_desktop
+    - not chezmoi_config_stat.stat.exists
+  become: false
+  register: chezmoi_init_result
+  changed_when: chezmoi_init_result.rc == 0
+
+- name: Display chezmoi next steps (desktops)
+  ansible.builtin.debug:
+    msg: |
+      Chezmoi initialized! Next steps:
+      1. Install and sign into 1Password desktop app
+      2. Run: chezmoi apply
+  when:
+    - is_desktop
+    - chezmoi_init_result is defined
+    - chezmoi_init_result.changed
+
+# =============================================================================
+# NON-DESKTOP MACHINES (bm-*, vm-*): Copy minimal dotfiles via Ansible
+# =============================================================================
+
+- name: Ensure .ssh directory exists (non-desktops)
+  ansible.builtin.file:
+    path: "{{ user_home }}/.ssh"
+    state: directory
+    mode: '0700'
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+  become: true
+  when: not is_desktop
+
+- name: Ensure .config/shell directory exists (non-desktops)
+  ansible.builtin.file:
+    path: "{{ user_home }}/.config/shell"
+    state: directory
+    mode: '0755'
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+  become: true
+  when: not is_desktop
+
+# Copy static dotfiles from chezmoi source directory
+# These files are the single source of truth for both desktop and non-desktop
+
+- name: Copy .bash_profile (non-desktops)
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../chezmoi/dot_bash_profile"
+    dest: "{{ user_home }}/.bash_profile"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0644'
+  become: true
+  when: not is_desktop
+
+- name: Copy .bashrc (non-desktops)
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../chezmoi/dot_bashrc"
+    dest: "{{ user_home }}/.bashrc"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0644'
+  become: true
+  when: not is_desktop
+
+- name: Copy .vimrc (non-desktops)
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../chezmoi/dot_vimrc"
+    dest: "{{ user_home }}/.vimrc"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0644'
+  become: true
+  when: not is_desktop
+
+- name: Copy .tmux.conf (non-desktops)
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../chezmoi/dot_tmux.conf"
+    dest: "{{ user_home }}/.tmux.conf"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0644'
+  become: true
+  when: not is_desktop
+
+- name: Copy .editorconfig (non-desktops)
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../chezmoi/dot_editorconfig"
+    dest: "{{ user_home }}/.editorconfig"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0644'
+  become: true
+  when: not is_desktop
+
+- name: Copy .gitconfig (non-desktops)
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../chezmoi/private_dot_gitconfig"
+    dest: "{{ user_home }}/.gitconfig"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0644'
+  become: true
+  when: not is_desktop
+
+- name: Copy common.sh shell config (non-desktops)
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../chezmoi/dot_config/shell/common.sh"
+    dest: "{{ user_home }}/.config/shell/common.sh"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0644'
+  become: true
+  when: not is_desktop
+
+# SSH config uses Ansible template (no 1Password agent section)
+- name: Deploy SSH config (non-desktops)
+  ansible.builtin.template:
+    src: ssh_config.j2
+    dest: "{{ user_home }}/.ssh/config"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0600'
+  become: true
+  when: not is_desktop

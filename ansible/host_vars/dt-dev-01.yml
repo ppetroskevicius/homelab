@@ -1,0 +1,60 @@
+---
+# ThinkPad P14s Gen 3 (AMD) - Primary development laptop
+# Hardware discovered from running system
+
+# GPU Configuration
+gpu_vendor: amd
+# AMD integrated graphics - no additional driver packages needed on Ubuntu 24.04
+
+# Display Configuration (swaymsg -t get_outputs)
+# Multi-monitor setup with Lenovo dock
+displays:
+  primary: eDP-1           # Built-in laptop display
+  external_vertical: DP-9  # Dell monitor (rotated 270°)
+  external_main: DP-8      # LG monitor (landscape)
+
+# Display layout for sway config
+display_config:
+  - output: DP-9
+    transform: "270"
+    position: "0,0"
+  - output: DP-8
+    position: "2160,1000"
+  - output: eDP-1
+    position: "6000,2160"
+
+# Workspace assignments
+workspace_outputs:
+  1: eDP-1
+  2: DP-9
+  3: DP-8
+  4: DP-8
+  5: DP-8
+  6: DP-8
+  7: DP-8
+  8: DP-8
+  9: DP-8
+  10: DP-8
+
+# Input Devices (swaymsg -t get_inputs)
+# ThinkPad P14s does not have a touchscreen
+touchscreen_id: ""
+
+# Audio Configuration (pactl list sinks short)
+audio_sinks:
+  speakers: "alsa_output.pci-0000_00_1f.3.analog-stereo"
+  dock: "alsa_output.usb-Lenovo_ThinkPad_USB-C_Dock_Audio_000000000000-00.analog-stereo"
+
+# Notification output (for mako)
+notification_output: DP-8
+
+# Network Interfaces (ip link show)
+# Built-in notebook interfaces
+notebook_wifi: wlp4s0
+notebook_ethernet: enp0s31f6
+# Lenovo USB-C Dock ethernet (shows as enx* with USB MAC)
+dock_ethernet: enx482ae34adb95
+
+# Fingerprint Scanner
+# ThinkPad uses Synaptics fingerprint reader
+# fwupd/fprintd should handle it automatically

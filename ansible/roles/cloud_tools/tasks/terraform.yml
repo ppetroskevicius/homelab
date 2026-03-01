@@ -1,0 +1,65 @@
+---
+# Install Terraform via HashiCorp repository
+
+- name: Check if terraform is already installed
+  ansible.builtin.shell: command -v terraform
+  register: terraform_check
+  changed_when: false
+  failed_when: false
+
+# Linux installation via HashiCorp apt repository
+- name: Install required packages for HashiCorp repo (Linux)
+  ansible.builtin.apt:
+    name:
+      - gnupg
+      - software-properties-common
+    state: present
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Add HashiCorp GPG key (Linux)
+  ansible.builtin.shell: |
+    wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+  args:
+    creates: /usr/share/keyrings/hashicorp-archive-keyring.gpg
+  become: true
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - terraform_check.rc != 0
+
+- name: Add HashiCorp apt repository (Linux)
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com {{ ansible_facts['distribution_release'] }} main"
+    state: present
+    filename: hashicorp
+  become: true
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - terraform_check.rc != 0
+
+- name: Install Terraform (Linux)
+  ansible.builtin.apt:
+    name: terraform
+    state: present
+    update_cache: yes
+  become: true
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - terraform_check.rc != 0
+
+# macOS installation via Homebrew
+- name: Add HashiCorp tap (macOS)
+  community.general.homebrew_tap:
+    name: hashicorp/tap
+    state: present
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - terraform_check.rc != 0
+
+- name: Install Terraform (macOS)
+  community.general.homebrew:
+    name: hashicorp/tap/terraform
+    state: present
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - terraform_check.rc != 0

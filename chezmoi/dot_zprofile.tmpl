@@ -1,0 +1,25 @@
+{{- $isDesktop := or (eq (get . "machine_type") "desktop") (hasPrefix "dt-" .chezmoi.hostname) -}}
+{{- $isWork := and (hasKey . "is_work") .is_work -}}
+# zprofile runs once at login, it makes the variable available to your
+# entire session (terminals, IDEs, GUI apps launched from shell
+
+# shellcheck shell=sh
+# Minimal zprofile (zsh is the primary login shell)
+# shellcheck source=~/.config/shell/common.sh
+# shellcheck disable=SC1090
+
+# 1Password SSH Agent (personal desktops only - work machines use their own key management)
+{{- if and $isDesktop (not $isWork) }}
+{{-   if eq .chezmoi.os "darwin" }}
+export SSH_AUTH_SOCK="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+{{-   else }}
+export SSH_AUTH_SOCK="$HOME/.1password/agent.sock"
+{{-   end }}
+{{- end }}
+
+[ -f "$HOME/.config/shell/common.sh" ] && . "$HOME/.config/shell/common.sh"
+
+# Zsh history settings (set once at login)
+export HISTFILE="$HOME/.zsh_history"
+export HISTSIZE=50000
+export SAVEHIST=10000

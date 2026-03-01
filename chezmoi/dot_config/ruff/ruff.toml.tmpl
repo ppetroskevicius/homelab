@@ -1,0 +1,37 @@
+# Ruff configuration for consistent Python formatting and linting
+# https://docs.astral.sh/ruff/configuration/
+
+target-version = "py310"
+line-length = 150
+indent-width = 2
+
+[lint]
+# Enable essential rules for clean, maintainable code
+select = [
+  "E",      # pycodestyle errors
+  "F",      # pyflakes
+  "W",      # pycodestyle warnings
+  "UP",     # pyupgrade
+  "C4",     # flake8-comprehensions
+  "SIM",    # flake8-simplify
+  "RET",    # flake8-return
+  "A",      # flake8-builtins
+  "RUF",    # ruff-specific rules
+]
+
+# Common directories to exclude
+exclude = [
+  ".git",
+  ".venv",
+  "venv",
+  "__pycache__",
+  "build",
+  "dist",
+]
+
+[format]
+# Use consistent formatting
+quote-style = "double"
+indent-style = "space"
+skip-string-normalization = false
+line-ending = "auto"

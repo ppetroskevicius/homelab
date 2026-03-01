@@ -1,0 +1,6 @@
+# Blacklist NVIDIA drivers for GPU passthrough
+# Managed by Ansible - gpu_passthrough role
+# This prevents the host from claiming NVIDIA GPUs
+{% for driver in gpu_driver_blacklist.nvidia %}
+blacklist {{ driver }}
+{% endfor %}

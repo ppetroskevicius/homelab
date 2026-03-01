@@ -1,0 +1,16 @@
+---
+# =============================================================================
+# GPU Passthrough Role - Main Orchestration
+# =============================================================================
+# This role configures IOMMU and VFIO for PCI passthrough of GPUs to KVM VMs.
+# Requires: BIOS settings enabled (VT-d/AMD-Vi, Above 4G Decoding)
+# =============================================================================
+
+- name: Include validation tasks
+  ansible.builtin.include_tasks: validation.yml
+
+- name: Include IOMMU configuration tasks
+  ansible.builtin.include_tasks: iommu.yml
+
+- name: Include VFIO configuration tasks
+  ansible.builtin.include_tasks: vfio.yml

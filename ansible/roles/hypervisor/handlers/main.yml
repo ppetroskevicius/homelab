@@ -1,0 +1,6 @@
+---
+- name: Apply Netplan
+  ansible.builtin.command: netplan apply
+  become: true
+  async: 1
+  poll: 0  # Don't wait for completion (will drop SSH connection)

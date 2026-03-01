@@ -1,0 +1,74 @@
+---
+# Install AWS CLI v2
+
+- name: Check if AWS CLI is already installed
+  ansible.builtin.shell: command -v aws
+  register: aws_check
+  changed_when: false
+  failed_when: false
+
+# Linux installation
+- name: Download AWS CLI v2 (Linux)
+  ansible.builtin.get_url:
+    url: "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
+    dest: /tmp/awscliv2.zip
+    mode: '0644'
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - aws_check.rc != 0
+
+- name: Unzip AWS CLI installer (Linux)
+  ansible.builtin.unarchive:
+    src: /tmp/awscliv2.zip
+    dest: /tmp
+    remote_src: yes
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - aws_check.rc != 0
+
+- name: Install AWS CLI v2 (Linux)
+  ansible.builtin.shell: /tmp/aws/install --update
+  args:
+    creates: /usr/local/bin/aws
+  become: true
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - aws_check.rc != 0
+
+- name: Clean up AWS CLI installer (Linux)
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /tmp/awscliv2.zip
+    - /tmp/aws
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - aws_check.rc != 0
+
+# macOS installation
+- name: Download AWS CLI v2 (macOS)
+  ansible.builtin.get_url:
+    url: "https://awscli.amazonaws.com/AWSCLIV2.pkg"
+    dest: /tmp/AWSCLIV2.pkg
+    mode: '0644'
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - aws_check.rc != 0
+
+- name: Install AWS CLI v2 (macOS)
+  ansible.builtin.shell: |
+    sudo installer -pkg /tmp/AWSCLIV2.pkg -target /
+  args:
+    creates: /usr/local/bin/aws
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - aws_check.rc != 0
+
+- name: Clean up AWS CLI installer (macOS)
+  ansible.builtin.file:
+    path: /tmp/AWSCLIV2.pkg
+    state: absent
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - aws_check.rc != 0

@@ -1,0 +1,12 @@
+version: 2
+ethernets:
+  enp1s0:
+    dhcp4: false
+    dhcp6: false
+    addresses:
+      - ${ip_address}/24
+    routes:
+      - to: default
+        via: ${gateway}
+    nameservers:
+      addresses: [%{for i, dns_server in dns}${dns_server}%{if i < length(dns) - 1}, %{endif}%{endfor}]

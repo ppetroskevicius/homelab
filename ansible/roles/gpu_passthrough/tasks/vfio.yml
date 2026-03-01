@@ -1,0 +1,111 @@
+---
+# =============================================================================
+# VFIO Configuration for GPU Passthrough
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Determine GPU type for driver blacklisting
+# -----------------------------------------------------------------------------
+
+- name: Detect GPU vendor types in passthrough list
+  ansible.builtin.set_fact:
+    has_nvidia_gpu: "{{ gpu_passthrough_devices | selectattr('vendor_id', 'equalto', '10de') | list | length > 0 }}"
+    has_amd_gpu: "{{ gpu_passthrough_devices | selectattr('vendor_id', 'equalto', '1002') | list | length > 0 }}"
+
+# -----------------------------------------------------------------------------
+# VFIO Module Configuration
+# -----------------------------------------------------------------------------
+
+- name: Ensure VFIO modules are loaded at boot
+  ansible.builtin.template:
+    src: vfio-modules.conf.j2
+    dest: /etc/modules-load.d/vfio.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Update initramfs
+
+# -----------------------------------------------------------------------------
+# VFIO PCI Device Binding
+# -----------------------------------------------------------------------------
+
+- name: Build list of PCI device IDs for VFIO binding
+  ansible.builtin.set_fact:
+    vfio_device_ids: >-
+      {{
+        gpu_passthrough_devices | map(attribute='vendor_id') | zip(gpu_passthrough_devices | map(attribute='device_id'))
+        | map('join', ':') | list
+        +
+        (gpu_passthrough_devices | selectattr('audio_device_id', 'defined') | map(attribute='vendor_id') | zip(
+          gpu_passthrough_devices | selectattr('audio_device_id', 'defined') | map(attribute='audio_device_id')
+        ) | map('join', ':') | list)
+      }}
+
+- name: Remove duplicate device IDs
+  ansible.builtin.set_fact:
+    vfio_device_ids: "{{ vfio_device_ids | unique }}"
+
+- name: Display devices to bind to VFIO
+  ansible.builtin.debug:
+    msg: "VFIO device IDs: {{ vfio_device_ids | join(', ') }}"
+
+- name: Configure VFIO PCI device binding
+  ansible.builtin.template:
+    src: vfio-pci-ids.conf.j2
+    dest: /etc/modprobe.d/vfio-pci.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Update initramfs
+
+# -----------------------------------------------------------------------------
+# GPU Driver Blacklisting
+# -----------------------------------------------------------------------------
+
+- name: Blacklist NVIDIA drivers
+  ansible.builtin.template:
+    src: blacklist-nvidia.conf.j2
+    dest: /etc/modprobe.d/blacklist-nvidia.conf
+    owner: root
+    group: root
+    mode: '0644'
+  when: has_nvidia_gpu
+  notify: Update initramfs
+
+- name: Blacklist AMD drivers
+  ansible.builtin.template:
+    src: blacklist-amd.conf.j2
+    dest: /etc/modprobe.d/blacklist-amd.conf
+    owner: root
+    group: root
+    mode: '0644'
+  when: has_amd_gpu
+  notify: Update initramfs
+
+# -----------------------------------------------------------------------------
+# Ensure VFIO loads before GPU drivers
+# -----------------------------------------------------------------------------
+
+- name: Configure VFIO to load before GPU drivers
+  ansible.builtin.template:
+    src: vfio-softdep.conf.j2
+    dest: /etc/modprobe.d/vfio-softdep.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Update initramfs
+
+# -----------------------------------------------------------------------------
+# Verification (post-reboot)
+# -----------------------------------------------------------------------------
+
+- name: Check current VFIO-PCI bindings
+  ansible.builtin.shell:
+    cmd: lspci -nnk | grep -A2 -E "VGA|3D controller|Audio device" | head -30
+  register: vfio_binding_check
+  changed_when: false
+  failed_when: false
+
+- name: Display current GPU driver bindings
+  ansible.builtin.debug:
+    msg: "{{ vfio_binding_check.stdout_lines }}"

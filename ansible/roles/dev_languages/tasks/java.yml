@@ -1,0 +1,31 @@
+---
+# Install Java Development Kit
+# Skipped when asdf manages Java (asdf_java_enabled: true)
+
+- name: Install OpenJDK (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name: "{{ java_package_debian }}"
+    state: present
+  become: true
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - not (asdf_java_enabled | default(false))
+
+- name: Install OpenJDK (macOS)
+  community.general.homebrew:
+    name: "{{ java_package_darwin }}"
+    state: present
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - not (asdf_java_enabled | default(false))
+
+- name: Symlink OpenJDK for macOS system Java wrappers
+  ansible.builtin.shell: |
+    sudo ln -sfn $(brew --prefix)/opt/openjdk/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk.jdk
+  args:
+    creates: /Library/Java/JavaVirtualMachines/openjdk.jdk
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - not (is_work_mac | default(false))
+    - not (asdf_java_enabled | default(false))
+  become: true

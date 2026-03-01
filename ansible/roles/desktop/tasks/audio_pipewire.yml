@@ -1,0 +1,47 @@
+---
+# Configure PipeWire audio and Bluetooth (Linux only)
+
+- name: Install audio and Bluetooth packages (Linux)
+  ansible.builtin.apt:
+    name: "{{ audio_packages_debian }}"
+    state: present
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Enable Bluetooth service
+  ansible.builtin.systemd:
+    name: bluetooth
+    enabled: yes
+    state: started
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+  notify: Restart bluetooth
+
+- name: Add user to bluetooth group
+  ansible.builtin.user:
+    name: "{{ ansible_facts['user_id'] }}"
+    groups: bluetooth
+    append: yes
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+  ignore_errors: true
+
+- name: Create PipeWire user config directory
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/.config/pipewire"
+    state: directory
+    mode: '0755'
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Enable PipeWire user services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    scope: user
+    enabled: yes
+    state: started
+  loop:
+    - pipewire
+    - pipewire-pulse
+    - wireplumber
+  when: ansible_facts['os_family'] == "Debian"
+  ignore_errors: true

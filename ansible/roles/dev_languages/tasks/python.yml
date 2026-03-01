@@ -1,0 +1,52 @@
+---
+# Install Python tooling via UV (Astral's fast Python package manager)
+
+- name: Check if uv is already installed
+  ansible.builtin.shell: command -v uv
+  register: uv_check
+  changed_when: false
+  failed_when: false
+
+- name: Install UV via curl (Linux/macOS)
+  ansible.builtin.shell: |
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  args:
+    creates: "{{ ansible_facts.env.HOME }}/.local/bin/uv"
+  when: uv_check.rc != 0
+
+- name: Check installed uv tools
+  ansible.builtin.shell: |
+    export PATH="{{ ansible_facts.env.HOME }}/.local/bin:$PATH"
+    uv tool list 2>/dev/null || echo ""
+  args:
+    executable: /bin/bash
+  register: uv_tools_installed
+  changed_when: false
+
+- name: Install Python tools via uv tool
+  ansible.builtin.shell: |
+    export PATH="{{ ansible_facts.env.HOME }}/.local/bin:$PATH"
+    uv tool install {{ item }}
+  args:
+    executable: /bin/bash
+  loop: "{{ uv_tools }}"
+  when: item not in uv_tools_installed.stdout
+  register: uv_install_result
+  changed_when: "'Installed' in uv_install_result.stdout"
+
+# Shell linting tools (shellcheck, shfmt)
+- name: Install shellcheck and shfmt (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name:
+      - shellcheck
+    state: present
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Install shellcheck and shfmt (macOS)
+  community.general.homebrew:
+    name:
+      - shellcheck
+      - shfmt
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"

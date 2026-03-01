@@ -1,0 +1,3 @@
+---
+# All hosts in the dt_dev group are desktops (dt-* Linux or Macs)
+is_desktop: true

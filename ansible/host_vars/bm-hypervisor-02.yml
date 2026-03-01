@@ -1,0 +1,52 @@
+---
+# Physical network interface and bridge configuration
+physical_interface: enp10s0
+bridge_ip: 192.168.20.33
+gateway: 192.168.20.1
+
+# Local NVMe storage for KVM VMs
+local_storage:
+  device: /dev/disk/by-id/nvme-Samsung_SSD_990_PRO_1TB_S6Z1NJ0TB25442J-part1
+  fstype: ext4
+  mountpoint: /nvmedata
+  mount_opts: defaults,noatime
+
+# NFS mount configuration
+nfs_mounts:
+  - src: 192.168.20.20:/ssdpool/data
+    path: /mnt/ssdpool
+    fstype: nfs
+    opts: defaults
+  - src: 192.168.20.20:/hddmirror/backups
+    path: /mnt/hddmirror
+    fstype: nfs
+    opts: defaults
+  - src: 192.168.20.20:/hddsingle/scratch
+    path: /mnt/hddsingle
+    fstype: nfs
+    opts: defaults
+
+# =============================================================================
+# GPU Passthrough Configuration
+# =============================================================================
+# NVIDIA RTX 3090 for ML/AI workloads (Ollama, training)
+# First test target for GPU passthrough validation
+#
+# To find actual PCI slot and device IDs, run:
+#   lspci -nn | grep -i nvidia
+#   lspci -nn | grep -i audio | grep -i nvidia
+# =============================================================================
+
+gpu_passthrough:
+  enabled: true
+  cpu_vendor: amd
+
+gpu_passthrough_devices:
+  # NVIDIA RTX 3090 - 24GB VRAM
+  # Verified PCI slots from IOMMU group output
+  - name: "NVIDIA RTX 3090"
+    pci_slot: "0000:01:00.0"
+    vendor_id: "10de"              # NVIDIA vendor ID
+    device_id: "2204"              # RTX 3090 device ID
+    audio_pci_slot: "0000:01:00.1" # HDMI Audio controller
+    audio_device_id: "1aef"        # Audio device ID

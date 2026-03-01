@@ -1,0 +1,68 @@
+---
+# Install additional cloud and development utilities
+
+# Firebase CLI via pnpm
+- name: Install Firebase CLI via pnpm
+  ansible.builtin.shell: |
+    export NVM_DIR="{{ ansible_facts.env.HOME }}/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+    export PNPM_HOME="{{ ansible_facts.env.HOME }}/.local/share/pnpm"
+    export PATH="$PNPM_HOME:$PATH"
+    pnpm add -g firebase-tools
+  args:
+    executable: /bin/bash
+  changed_when: false
+
+# Ansible (for managing other machines from desktop)
+- name: Install Ansible (Linux)
+  ansible.builtin.apt:
+    name: ansible
+    state: present
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Install Ansible (macOS)
+  community.general.homebrew:
+    name: ansible
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+# Playwright for browser automation
+- name: Install Playwright Linux dependencies
+  ansible.builtin.apt:
+    name: "{{ playwright_deps_debian }}"
+    state: present
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+  ignore_errors: true
+
+- name: Install Playwright via pnpm
+  ansible.builtin.shell: |
+    export NVM_DIR="{{ ansible_facts.env.HOME }}/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+    export PNPM_HOME="{{ ansible_facts.env.HOME }}/.local/share/pnpm"
+    export PATH="$PNPM_HOME:$PATH"
+    pnpm add -g playwright
+  args:
+    executable: /bin/bash
+  changed_when: false
+
+- name: Check if Playwright browsers are installed
+  ansible.builtin.stat:
+    path: "{{ ansible_facts.env.HOME }}/.cache/ms-playwright"
+  register: playwright_cache
+
+- name: Install Playwright browsers (Chromium and Firefox only)
+  ansible.builtin.shell: |
+    export NVM_DIR="{{ ansible_facts.env.HOME }}/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+    export PNPM_HOME="{{ ansible_facts.env.HOME }}/.local/share/pnpm"
+    export PATH="$PNPM_HOME:$PATH"
+    npx playwright install chromium firefox
+  args:
+    executable: /bin/bash
+  changed_when: false
+  when: not playwright_cache.stat.exists
+  async: 600
+  poll: 30
+  ignore_errors: true

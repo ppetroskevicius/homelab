@@ -1,0 +1,92 @@
+---
+# Physical network interface and bridge configuration
+physical_interface: eno1
+bridge_ip: 192.168.20.22
+gateway: 192.168.20.1
+
+# Local NVMe RAID0 storage for KVM VMs and ML datasets
+local_storage:
+  device: /dev/md0
+  fstype: xfs
+  mountpoint: /nvmedata
+  mount_opts: defaults,noatime
+
+# NFS mount configuration
+nfs_mounts:
+  - src: 192.168.20.20:/ssdpool/data
+    path: /mnt/ssdpool
+    fstype: nfs
+    opts: defaults
+  - src: 192.168.20.20:/hddmirror/backups
+    path: /mnt/hddmirror
+    fstype: nfs
+    opts: defaults
+  - src: 192.168.20.20:/hddsingle/scratch
+    path: /mnt/hddsingle
+    fstype: nfs
+    opts: defaults
+
+# =============================================================================
+# GPU Passthrough Configuration
+# =============================================================================
+# 6x AMD RX 7900 XTX for ML/AI workloads
+# Headless server - all GPUs available for passthrough to VMs
+#
+# To find actual PCI slots and device IDs, run:
+#   lspci -nn | grep -i vga
+#   lspci -nn | grep -i amd | grep -i audio
+# =============================================================================
+
+gpu_passthrough:
+  enabled: true
+  cpu_vendor: amd
+
+gpu_passthrough_devices:
+  # AMD RX 7900 XTX #1 - 24GB VRAM
+  # Verified PCI slots from IOMMU group output
+  - name: "AMD RX 7900 XTX #1"
+    pci_slot: "0000:07:00.0"
+    vendor_id: "1002"              # AMD vendor ID
+    device_id: "744c"              # RX 7900 XTX device ID (Navi 31)
+    audio_pci_slot: "0000:07:00.1"
+    audio_device_id: "ab30"
+
+  - name: "AMD RX 7900 XTX #2"
+    pci_slot: "0000:49:00.0"
+    vendor_id: "1002"
+    device_id: "744c"
+    audio_pci_slot: "0000:49:00.1"
+    audio_device_id: "ab30"
+
+  - name: "AMD RX 7900 XTX #3"
+    pci_slot: "0000:83:00.0"
+    vendor_id: "1002"
+    device_id: "744c"
+    audio_pci_slot: "0000:83:00.1"
+    audio_device_id: "ab30"
+
+  # GPU #4 is a multi-function device - all 4 functions must be passed through
+  # 86:00.0 (GPU), 86:00.1 (Audio), 86:00.2 (USB), 86:00.3 (Serial)
+  - name: "AMD RX 7900 XTX #4"
+    pci_slot: "0000:86:00.0"
+    vendor_id: "1002"
+    device_id: "744c"
+    audio_pci_slot: "0000:86:00.1"
+    audio_device_id: "ab30"
+    extra_pci_slots:
+      - "0000:86:00.2"  # USB controller
+      - "0000:86:00.3"  # Serial bus controller
+
+  - name: "AMD RX 7900 XTX #5"
+    pci_slot: "0000:c3:00.0"
+    vendor_id: "1002"
+    device_id: "744c"
+    audio_pci_slot: "0000:c3:00.1"
+    audio_device_id: "ab30"
+
+  - name: "AMD RX 7900 XTX #6"
+    pci_slot: "0000:c6:00.0"
+    vendor_id: "1002"
+    device_id: "744c"
+    audio_pci_slot: "0000:c6:00.1"
+    audio_device_id: "ab30"

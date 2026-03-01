@@ -1,0 +1,45 @@
+ TMUX CHEAT SHEET                                    prefix = ` (backtick)
+ ============================================================================
+
+ BASICS
+   ` + d           Detach from session
+   ` + ?           Show this cheat sheet (popup)
+   ` + r           Reload tmux config
+   ` + e           Send literal backtick
+   ` + `           Switch to last window
+
+ SESSIONS
+   ` + s           List sessions
+   ` + $           Rename session
+   ` + (  /  )     Previous / next session
+   tmux new -s X   Create session named X
+   tmux a -t X     Attach to session X
+
+ WINDOWS
+   ` + c           New window (keeps current path)
+   ` + n  /  p     Next / previous window
+   ` + 1-9         Jump to window N
+   ` + ,           Rename window
+   ` + w           Window chooser
+   ` + &           Kill window
+
+ PANES
+   ` + |           Split vertical (keeps path)
+   ` + -           Split horizontal (keeps path)
+   ` + h/j/k/l    Navigate panes (vim-style)
+   ` + H/J/K/L    Resize pane (repeatable)
+   ` + z           Toggle pane zoom
+   ` + x           Kill pane
+   ` + q           Show pane numbers
+
+ COPY MODE  (` + [  to enter, vi keys)
+   v               Begin selection
+   y               Copy to clipboard
+   q / Escape      Exit copy mode
+
+ GIT WORKTREES
+   ` + g           List/switch worktrees (fzf popup)
+   ` + G           Create worktree → new tmux window
+
+ SHELL: gwa <branch>  gwl  gwr <branch>
+ MOUSE: enabled (scroll, click, resize)

@@ -1,0 +1,10 @@
+---
+# Container role - installs Docker and/or K3s based on host group membership
+
+- name: Install Docker on dev container hosts
+  ansible.builtin.include_tasks: docker.yml
+  when: "'vm_dev_container' in group_names"
+
+- name: Install K3s on Kubernetes nodes
+  ansible.builtin.include_tasks: k3s.yml
+  when: "'vm_k8s_node' in group_names"

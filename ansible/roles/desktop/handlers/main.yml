@@ -1,0 +1,19 @@
+---
+# Handlers for desktop role
+
+- name: Restart bluetooth
+  ansible.builtin.systemd:
+    name: bluetooth
+    state: restarted
+  become: true
+
+- name: Update initramfs
+  ansible.builtin.command:
+    cmd: update-initramfs -u
+  become: true
+  changed_when: true
+
+- name: Reload systemd user daemon
+  ansible.builtin.systemd:
+    scope: user
+    daemon_reload: true

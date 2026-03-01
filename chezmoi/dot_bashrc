@@ -1,0 +1,26 @@
+# shellcheck shell=bash
+# Minimal bashrc for servers (bm-*, vm-*)
+# Note: common.sh is sourced in .bash_profile (login shell) to avoid duplicate PATH entries
+
+# Bash history settings
+HISTSIZE=10000
+HISTFILESIZE=20000
+HISTCONTROL=ignoreboth:erasedups
+shopt -s histappend
+
+# Starship prompt (if available) or colorful fallback
+if command -v starship >/dev/null 2>&1 && [ "${TERM-}" != "dumb" ]; then
+  eval "$(starship init bash)"
+else
+  # Colorful fallback prompt: user@host:dir$
+  PS1='\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+fi
+
+# direnv - just-in-time secrets per project
+if command -v direnv >/dev/null 2>&1; then
+  eval "$(direnv hook bash)"
+fi
+
+### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
+export PATH="$HOME/.rd/bin:$PATH"
+### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)

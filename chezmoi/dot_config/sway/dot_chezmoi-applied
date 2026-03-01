@@ -1,0 +1,2 @@
+# This file marks that chezmoi has applied the Sway configuration.
+# Ansible checks for this file to avoid overwriting the chezmoi-managed config.

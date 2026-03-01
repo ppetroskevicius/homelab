@@ -1,0 +1,14 @@
+# shellcheck shell=sh
+# Minimal bash_profile (mirrors zprofile)
+# shellcheck source=~/.config/shell/common.sh
+# shellcheck disable=SC1090
+[ -f "$HOME/.config/shell/common.sh" ] && . "$HOME/.config/shell/common.sh"
+
+# bash login shells don't automatically load .bashrc
+case $- in
+*i*) [ -f "$HOME/.bashrc" ] && . "$HOME/.bashrc" ;;
+esac
+
+### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
+export PATH="$HOME/.rd/bin:$PATH"
+### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)

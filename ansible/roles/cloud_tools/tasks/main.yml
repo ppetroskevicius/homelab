@@ -1,0 +1,22 @@
+---
+# Main orchestration for cloud_tools role
+# On work-mac, only GCP CLI is installed (other tools are managed externally)
+
+- name: Install AWS CLI
+  ansible.builtin.include_tasks: aws_cli.yml
+  when: not (is_work_mac | default(false))
+
+- name: Install GCP CLI
+  ansible.builtin.include_tasks: gcp_cli.yml
+
+- name: Install Terraform
+  ansible.builtin.include_tasks: terraform.yml
+  when: not (is_work_mac | default(false))
+
+- name: Install GitHub CLI
+  ansible.builtin.include_tasks: github_cli.yml
+  when: not (is_work_mac | default(false))
+
+- name: Install additional utilities
+  ansible.builtin.include_tasks: utilities.yml
+  when: not (is_work_mac | default(false))

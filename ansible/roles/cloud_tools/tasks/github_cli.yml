@@ -1,0 +1,49 @@
+---
+# Install GitHub CLI (gh)
+
+- name: Check if gh is already installed
+  ansible.builtin.shell: command -v gh
+  register: gh_check
+  changed_when: false
+  failed_when: false
+
+# Linux installation
+- name: Add GitHub CLI GPG key (Linux)
+  ansible.builtin.shell: |
+    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+    sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+  args:
+    creates: /usr/share/keyrings/githubcli-archive-keyring.gpg
+  become: true
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - gh_check.rc != 0
+
+- name: Add GitHub CLI apt repository (Linux)
+  ansible.builtin.apt_repository:
+    repo: "deb [arch={{ ansible_facts['architecture'] | replace('x86_64', 'amd64') }} signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main"
+    state: present
+    filename: github-cli
+  become: true
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - gh_check.rc != 0
+
+- name: Install GitHub CLI (Linux)
+  ansible.builtin.apt:
+    name: gh
+    state: present
+    update_cache: yes
+  become: true
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - gh_check.rc != 0
+
+# macOS installation
+- name: Install GitHub CLI (macOS)
+  community.general.homebrew:
+    name: gh
+    state: present
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - gh_check.rc != 0

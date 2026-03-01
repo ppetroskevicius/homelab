@@ -1,0 +1,59 @@
+---
+# Install Google Cloud CLI
+
+- name: Check if gcloud is already installed
+  ansible.builtin.shell: command -v gcloud
+  register: gcloud_check
+  changed_when: false
+  failed_when: false
+
+# Linux installation via apt repository
+- name: Install apt-transport-https and curl (Linux)
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - gnupg
+      - curl
+    state: present
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Add Google Cloud GPG key (Linux)
+  ansible.builtin.shell: |
+    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+  args:
+    creates: /usr/share/keyrings/cloud.google.gpg
+  become: true
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - gcloud_check.rc != 0
+
+- name: Add Google Cloud apt repository (Linux)
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main"
+    state: present
+    filename: google-cloud-sdk
+  become: true
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - gcloud_check.rc != 0
+
+- name: Install Google Cloud CLI (Linux)
+  ansible.builtin.apt:
+    name: google-cloud-cli
+    state: present
+    update_cache: yes
+  become: true
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - gcloud_check.rc != 0
+
+# macOS installation via Homebrew
+- name: Install Google Cloud SDK (macOS)
+  community.general.homebrew_cask:
+    name: google-cloud-sdk
+    state: present
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - gcloud_check.rc != 0

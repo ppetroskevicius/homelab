@@ -1,0 +1,32 @@
+---
+# Install Kotlin via SDKMAN
+
+- name: Install SDKMAN dependencies (zip, unzip)
+  ansible.builtin.apt:
+    name:
+      - zip
+      - unzip
+      - curl
+    state: present
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Check if SDKMAN is already installed
+  ansible.builtin.stat:
+    path: "{{ ansible_facts.env.HOME }}/.sdkman"
+  register: sdkman_exists
+
+- name: Install SDKMAN
+  ansible.builtin.shell: |
+    curl -s "https://get.sdkman.io" | bash
+  args:
+    creates: "{{ ansible_facts.env.HOME }}/.sdkman/bin/sdkman-init.sh"
+  when: not sdkman_exists.stat.exists
+
+- name: Install Kotlin via SDKMAN
+  ansible.builtin.shell: |
+    source {{ ansible_facts.env.HOME }}/.sdkman/bin/sdkman-init.sh
+    sdk install kotlin
+  args:
+    executable: /bin/bash
+    creates: "{{ ansible_facts.env.HOME }}/.sdkman/candidates/kotlin/current"

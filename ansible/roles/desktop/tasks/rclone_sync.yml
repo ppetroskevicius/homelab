@@ -1,0 +1,198 @@
+---
+# Configure rclone bidirectional sync with Google Drive
+# Requires: chezmoi apply to have deployed rclone.conf from 1Password
+
+# Variables
+# rclone_remote_name: "gdrive_remote" (from rclone.conf)
+# rclone_sync_path: "/data/google_drive"
+# rclone_sync_interval: "1h" (hourly)
+
+- name: Install rclone
+  ansible.builtin.apt:
+    name: rclone
+    state: present
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Install rclone (macOS)
+  community.general.homebrew:
+    name: rclone
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+- name: Check if rclone config exists
+  ansible.builtin.stat:
+    path: "{{ ansible_facts.env.HOME }}/.config/rclone/rclone.conf"
+  register: rclone_conf
+
+- name: Warn if rclone config is missing
+  ansible.builtin.debug:
+    msg: "WARNING: Rclone config not found. Run 'chezmoi apply' after signing into 1Password to deploy secrets."
+  when: not rclone_conf.stat.exists
+
+# Create sync directory (needs sudo for /data) — Linux only
+- name: Ensure /data directory exists
+  ansible.builtin.file:
+    path: /data
+    state: directory
+    mode: '0755'
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Ensure /data/google_drive directory exists
+  ansible.builtin.file:
+    path: /data/google_drive
+    state: directory
+    owner: "{{ ansible_facts['user_id'] }}"
+    group: "{{ ansible_facts['user_id'] }}"
+    mode: '0755'
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+# Enable systemd linger for user services to start at boot
+- name: Enable systemd linger for user
+  ansible.builtin.command:
+    cmd: "loginctl enable-linger {{ ansible_facts['user_id'] }}"
+  become: true
+  register: linger_result
+  changed_when: false
+  failed_when: false
+  when: ansible_facts['os_family'] == "Debian"
+
+# Create systemd user directory
+- name: Ensure systemd user directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/.config/systemd/user"
+    state: directory
+    mode: '0755'
+  when: ansible_facts['os_family'] == "Debian"
+
+# Systemd service for rclone bisync (Linux only)
+- name: Deploy rclone-bisync systemd service
+  ansible.builtin.copy:
+    dest: "{{ ansible_facts.env.HOME }}/.config/systemd/user/rclone-bisync.service"
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Rclone Bidirectional Sync with Google Drive
+      Wants=network-online.target
+      After=network-online.target
+
+      [Service]
+      Type=oneshot
+      # Bisync local /data/google_drive with Google Drive root
+      ExecStart=/usr/bin/rclone bisync /data/google_drive gdrive_remote: \
+          --verbose \
+          --check-access \
+          --resilient \
+          --recover \
+          --max-delete 50 \
+          --filters-file %h/.config/rclone/bisync-filters.txt
+      # Log to journalctl (use: journalctl --user -u rclone-bisync)
+      StandardOutput=journal
+      StandardError=journal
+
+      [Install]
+      WantedBy=default.target
+  notify: Reload systemd user daemon
+  when: ansible_facts['os_family'] == "Debian"
+
+# Systemd timer for hourly sync (Linux only)
+- name: Deploy rclone-bisync systemd timer
+  ansible.builtin.copy:
+    dest: "{{ ansible_facts.env.HOME }}/.config/systemd/user/rclone-bisync.timer"
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Run rclone bisync every hour
+
+      [Timer]
+      OnBootSec=5min
+      OnUnitActiveSec=1h
+      Persistent=true
+
+      [Install]
+      WantedBy=timers.target
+  notify: Reload systemd user daemon
+  when: ansible_facts['os_family'] == "Debian"
+
+# Create default filters file (empty by default, user can customize)
+- name: Create bisync filters file
+  ansible.builtin.copy:
+    dest: "{{ ansible_facts.env.HOME }}/.config/rclone/bisync-filters.txt"
+    mode: '0644'
+    force: false  # Don't overwrite if exists
+    content: |
+      # Rclone bisync filter rules
+      # See: https://rclone.org/filtering/
+      #
+      # Exclude patterns (prefix with -)
+      # - .DS_Store
+      # - *.tmp
+      # - .Trash-*
+      #
+      # Include patterns (prefix with +)
+      # + important/**
+  when: ansible_facts['os_family'] == "Debian"
+
+# Create initial resync script (one-time setup)
+- name: Create bisync initialization script
+  ansible.builtin.copy:
+    dest: "{{ ansible_facts.env.HOME }}/.local/bin/rclone-bisync-init"
+    mode: '0755'
+    content: |
+      #!/bin/bash
+      # One-time initialization for rclone bisync
+      # This creates the baseline for bidirectional sync
+      #
+      # WARNING: This will make both sides match. Review carefully!
+      #
+      # Usage: rclone-bisync-init [--dry-run]
+
+      set -e
+
+      DRY_RUN=""
+      if [[ "$1" == "--dry-run" ]]; then
+          DRY_RUN="--dry-run"
+          echo "=== DRY RUN MODE ==="
+      fi
+
+      echo "Initializing rclone bisync between /data/google_drive and Google Drive..."
+      echo ""
+      echo "This will:"
+      echo "  1. Compare local /data/google_drive with gdrive_remote:"
+      echo "  2. Establish baseline for future syncs"
+      echo "  3. Sync any differences (both directions)"
+      echo ""
+
+      if [[ -z "$DRY_RUN" ]]; then
+          read -p "Continue? [y/N] " -n 1 -r
+          echo
+          if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+              echo "Aborted."
+              exit 1
+          fi
+      fi
+
+      rclone bisync /data/google_drive gdrive_remote: \
+          --resync \
+          --verbose \
+          --check-access \
+          $DRY_RUN
+
+      if [[ -z "$DRY_RUN" ]]; then
+          echo ""
+          echo "Bisync initialized! Enabling systemd timer..."
+          systemctl --user daemon-reload
+          systemctl --user enable --now rclone-bisync.timer
+          echo ""
+          echo "Status: systemctl --user status rclone-bisync.timer"
+          echo "Logs:   journalctl --user -u rclone-bisync -f"
+      fi
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Ensure ~/.local/bin exists
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/.local/bin"
+    state: directory
+    mode: '0755'

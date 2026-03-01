@@ -1,0 +1,69 @@
+---
+# Default variables for desktop role
+
+# Sway/Wayland packages
+sway_packages:
+  - sway
+  - wayland-protocols
+  - xwayland
+  - swayidle
+  - swaylock
+  - swayimg
+  - xdg-desktop-portal
+  - xdg-desktop-portal-wlr
+  - wl-clipboard
+  - grim
+  - slurp
+  - wofi
+  - foot  # Lightweight Wayland terminal for bootstrap (alacritty built later via cargo)
+
+# Audio/Bluetooth packages
+audio_packages_debian:
+  - bluez
+  - blueman
+  - pipewire
+  - pipewire-audio
+  - wireplumber
+  - pavucontrol
+  - alsa-utils
+  - playerctl
+
+# Desktop tool build dependencies
+desktop_build_deps:
+  - build-essential
+  - pkg-config
+  - libssl-dev
+  - libsensors-dev
+  - libpulse-dev
+  - libnotmuch-dev
+  - pandoc
+  - cmake
+  - libxcb-shape0-dev
+  - libxcb-xfixes0-dev
+  - libxkbcommon-dev
+  - libwayland-dev
+  - libegl-dev
+  - libgles-dev
+  - libfreetype-dev
+  - libfontconfig-dev
+  - libdbus-1-dev
+
+# Nerd Fonts to install
+nerd_fonts:
+  - 0xProto
+  - FiraCode
+  - Hack
+  - Meslo
+  - AnonymousPro
+  - IntelOneMono
+
+# Input method packages
+input_packages:
+  - fcitx5
+  - fcitx5-mozc
+
+# Power management and utilities
+power_packages:
+  - tlp
+  - brightnessctl
+  - wireguard

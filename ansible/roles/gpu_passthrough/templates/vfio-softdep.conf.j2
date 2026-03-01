@@ -1,0 +1,14 @@
+# Ensure VFIO loads before GPU drivers
+# Managed by Ansible - gpu_passthrough role
+{% if has_nvidia_gpu %}
+# NVIDIA driver soft dependencies
+softdep nvidia pre: vfio-pci
+softdep nvidia_drm pre: vfio-pci
+softdep nvidia_modeset pre: vfio-pci
+softdep nouveau pre: vfio-pci
+{% endif %}
+{% if has_amd_gpu %}
+# AMD driver soft dependencies
+softdep amdgpu pre: vfio-pci
+softdep radeon pre: vfio-pci
+{% endif %}

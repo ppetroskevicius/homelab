@@ -1,0 +1,142 @@
+# Bootstrap Sway config - minimal config to allow initial setup
+#
+# This is deployed by Ansible before chezmoi runs.
+# Once 1Password is set up and `chezmoi apply` runs, this will be
+# replaced with the full configuration.
+#
+# Purpose: Provide terminal and launcher access so user can:
+#   1. Launch 1Password and sign in
+#   2. Run `chezmoi apply` to get full config
+
+### Variables
+set $mod Mod4
+set $left h
+set $down j
+set $up k
+set $right l
+
+# Foot terminal (installed via apt - available immediately for bootstrap)
+# Alacritty is built later via cargo and used by the full chezmoi config
+set $term foot
+
+# Wofi launcher (installed via apt - available immediately for bootstrap)
+# Kickoff is built later via cargo and used by the full chezmoi config
+set $menu wofi --show drun
+
+### Basic appearance
+default_border pixel 2
+gaps inner 4
+
+### Output configuration
+# Generic fallback - works on any laptop
+output * bg #285577 solid_color
+output eDP-1 position 0,0
+
+### Input configuration
+input type:touchpad {
+    tap enabled
+    natural_scroll enabled
+    dwt enabled
+}
+
+input type:keyboard {
+    repeat_delay 300
+    repeat_rate 30
+}
+
+### Key bindings
+
+# Start a terminal
+bindsym $mod+Return exec $term
+
+# Kill focused window
+bindsym $mod+Shift+q kill
+
+# Start launcher
+bindsym $mod+d exec $menu
+
+# Drag/resize with mouse
+floating_modifier $mod normal
+
+# Reload config
+bindsym $mod+Shift+c reload
+
+# Exit sway
+bindsym $mod+Shift+e exec swaynag -t warning -m 'Exit Sway?' -B 'Yes' 'swaymsg exit'
+
+# Move focus
+bindsym $mod+$left focus left
+bindsym $mod+$down focus down
+bindsym $mod+$up focus up
+bindsym $mod+$right focus right
+bindsym $mod+Left focus left
+bindsym $mod+Down focus down
+bindsym $mod+Up focus up
+bindsym $mod+Right focus right
+
+# Move windows
+bindsym $mod+Shift+$left move left
+bindsym $mod+Shift+$down move down
+bindsym $mod+Shift+$up move up
+bindsym $mod+Shift+$right move right
+
+# Workspaces
+bindsym $mod+1 workspace number 1
+bindsym $mod+2 workspace number 2
+bindsym $mod+3 workspace number 3
+bindsym $mod+4 workspace number 4
+bindsym $mod+5 workspace number 5
+bindsym $mod+6 workspace number 6
+bindsym $mod+7 workspace number 7
+bindsym $mod+8 workspace number 8
+bindsym $mod+9 workspace number 9
+bindsym $mod+0 workspace number 10
+
+bindsym $mod+Shift+1 move container to workspace number 1
+bindsym $mod+Shift+2 move container to workspace number 2
+bindsym $mod+Shift+3 move container to workspace number 3
+bindsym $mod+Shift+4 move container to workspace number 4
+bindsym $mod+Shift+5 move container to workspace number 5
+bindsym $mod+Shift+6 move container to workspace number 6
+bindsym $mod+Shift+7 move container to workspace number 7
+bindsym $mod+Shift+8 move container to workspace number 8
+bindsym $mod+Shift+9 move container to workspace number 9
+bindsym $mod+Shift+0 move container to workspace number 10
+
+# Layout
+bindsym $mod+b splith
+bindsym $mod+v splitv
+bindsym $mod+f fullscreen
+bindsym $mod+Shift+space floating toggle
+bindsym $mod+space focus mode_toggle
+
+# Resize mode
+mode "resize" {
+    bindsym $left resize shrink width 10px
+    bindsym $down resize grow height 10px
+    bindsym $up resize shrink height 10px
+    bindsym $right resize grow width 10px
+    bindsym Return mode "default"
+    bindsym Escape mode "default"
+}
+bindsym $mod+r mode "resize"
+
+# Simple status bar (no i3status-rs, just shows workspaces)
+bar {
+    position top
+    colors {
+        background #222222
+        statusline #dddddd
+        focused_workspace #0088CC #0088CC #ffffff
+        inactive_workspace #333333 #333333 #888888
+    }
+}
+
+# Brightness/volume keys (if hardware supports them)
+bindsym XF86MonBrightnessUp exec brightnessctl set +10%
+bindsym XF86MonBrightnessDown exec brightnessctl set 10%-
+bindsym XF86AudioRaiseVolume exec pactl set-sink-volume @DEFAULT_SINK@ +5%
+bindsym XF86AudioLowerVolume exec pactl set-sink-volume @DEFAULT_SINK@ -5%
+bindsym XF86AudioMute exec pactl set-sink-mute @DEFAULT_SINK@ toggle
+
+include /etc/sway/config.d/*

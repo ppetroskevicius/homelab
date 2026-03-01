@@ -1,0 +1,75 @@
+---
+# Install Sway window manager and Wayland components (Linux only)
+
+- name: Create Sway config directory
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/.config/sway"
+    state: directory
+    mode: '0755'
+
+- name: Check if chezmoi has applied Sway config
+  ansible.builtin.stat:
+    path: "{{ ansible_facts.env.HOME }}/.config/sway/.chezmoi-applied"
+  register: chezmoi_sway_marker
+
+- name: Deploy bootstrap Sway config (before chezmoi apply)
+  ansible.builtin.copy:
+    src: sway_bootstrap_config
+    dest: "{{ ansible_facts.env.HOME }}/.config/sway/config"
+    mode: '0644'
+  when: not chezmoi_sway_marker.stat.exists
+
+- name: Install Sway and Wayland packages
+  ansible.builtin.apt:
+    name: "{{ sway_packages }}"
+    state: present
+  become: true
+
+- name: Install notification daemon (mako)
+  ansible.builtin.apt:
+    name: mako-notifier
+    state: present
+  become: true
+
+- name: Install input method packages
+  ansible.builtin.apt:
+    name: "{{ input_packages }}"
+    state: present
+  become: true
+
+- name: Install power management and utilities
+  ansible.builtin.apt:
+    name: "{{ power_packages }}"
+    state: present
+  become: true
+
+- name: Add user to video group for brightnessctl
+  ansible.builtin.user:
+    name: "{{ ansible_facts['user_id'] }}"
+    groups: video
+    append: yes
+  become: true
+
+- name: Enable TLP service
+  ansible.builtin.systemd:
+    name: tlp
+    enabled: yes
+    state: started
+  become: true
+  ignore_errors: true
+
+- name: Create XDG portal config directory
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/.config/xdg-desktop-portal"
+    state: directory
+    mode: '0755'
+
+- name: Configure XDG desktop portal for wlroots
+  ansible.builtin.copy:
+    dest: "{{ ansible_facts.env.HOME }}/.config/xdg-desktop-portal/portals.conf"
+    content: |
+      [preferred]
+      default=wlr
+      org.freedesktop.impl.portal.Screenshot=wlr
+      org.freedesktop.impl.portal.ScreenCast=wlr
+    mode: '0644'

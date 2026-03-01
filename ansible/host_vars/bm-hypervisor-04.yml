@@ -1,0 +1,8 @@
+---
+# Physical network interface and bridge configuration
+physical_interface: enp1s0
+bridge_ip: 192.168.10.194
+gateway: 192.168.10.1
+
+# Note: bm-hypervisor-04 is on a different subnet (192.168.10.x)
+# NFS mounts may not work due to subnet isolation unless routing is configured

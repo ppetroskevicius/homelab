@@ -1,0 +1,81 @@
+---
+- name: Update Apt Cache (Ubuntu/Debian)
+  ansible.builtin.apt:
+    update_cache: true
+    upgrade: dist
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Update Homebrew (macOS)
+  community.general.homebrew:
+    update_homebrew: true
+    upgrade_all: true
+  when: ansible_facts['os_family'] == "Darwin"
+
+- name: Install Basic Utilities (Ubuntu)
+  ansible.builtin.apt:
+    name:
+      - vim
+      - tmux
+      - git
+      - htop
+      - keychain
+      - direnv
+      - fzf
+      - netcat-openbsd
+      - locales
+      - unzip
+    state: present
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Install System Monitoring Tools (Ubuntu)
+  ansible.builtin.apt:
+    name:
+      - btop
+      - nvtop
+      - inxi
+      - lm-sensors
+    state: present
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Set timezone to Asia/Tokyo
+  community.general.timezone:
+    name: Asia/Tokyo
+  become: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Check if snapd is installed
+  ansible.builtin.package_facts:
+    manager: auto
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Remove snap (if installed)
+  ansible.builtin.apt:
+    name: snapd
+    state: absent
+    purge: true
+  become: true
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - "'snapd' in ansible_facts.packages"
+
+- name: Install Basic Utilities (macOS)
+  community.general.homebrew:
+    name:
+      - vim
+      - tmux
+      - git
+      - htop
+      - fzf
+      - btop
+      - jq
+      - direnv
+      - ripgrep
+      - fd
+      - tree
+      - gh
+      - coreutils
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"

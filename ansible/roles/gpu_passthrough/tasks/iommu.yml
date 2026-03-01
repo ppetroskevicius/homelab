@@ -1,0 +1,53 @@
+---
+# =============================================================================
+# IOMMU Configuration (GRUB Kernel Parameters)
+# =============================================================================
+
+- name: Set IOMMU kernel parameter based on CPU vendor
+  ansible.builtin.set_fact:
+    iommu_param: "{{ 'intel_iommu=on' if gpu_passthrough.cpu_vendor == 'intel' else 'amd_iommu=on' }}"
+
+- name: Read current GRUB configuration
+  ansible.builtin.slurp:
+    src: /etc/default/grub
+  register: grub_config_raw
+
+- name: Parse current GRUB_CMDLINE_LINUX_DEFAULT
+  ansible.builtin.set_fact:
+    current_grub_cmdline: "{{ (grub_config_raw.content | b64decode | regex_search('GRUB_CMDLINE_LINUX_DEFAULT=\"([^\"]*)\"', '\\1') | first) | default('quiet splash') }}"
+
+- name: Check if IOMMU parameters already present
+  ansible.builtin.set_fact:
+    iommu_present: "{{ iommu_param in current_grub_cmdline }}"
+    iommu_pt_present: "{{ 'iommu=pt' in current_grub_cmdline }}"
+
+- name: Build new GRUB_CMDLINE_LINUX_DEFAULT
+  ansible.builtin.set_fact:
+    new_grub_cmdline: >-
+      {{ current_grub_cmdline }}
+      {{ '' if iommu_present else iommu_param }}
+      {{ '' if iommu_pt_present else 'iommu=pt' }}
+  when: not (iommu_present and iommu_pt_present)
+
+- name: Clean up extra whitespace in GRUB cmdline
+  ansible.builtin.set_fact:
+    new_grub_cmdline: "{{ new_grub_cmdline | regex_replace('\\s+', ' ') | trim }}"
+  when: new_grub_cmdline is defined
+
+- name: Update GRUB_CMDLINE_LINUX_DEFAULT with IOMMU parameters
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    regexp: '^GRUB_CMDLINE_LINUX_DEFAULT='
+    line: 'GRUB_CMDLINE_LINUX_DEFAULT="{{ new_grub_cmdline }}"'
+    backup: true
+  when: new_grub_cmdline is defined
+  notify:
+    - Update GRUB
+    - Notify reboot required
+
+- name: Display GRUB configuration status
+  ansible.builtin.debug:
+    msg: >-
+      IOMMU kernel parameters: {{ 'already configured' if (iommu_present and iommu_pt_present) else 'updated - reboot required' }}
+      Current: {{ current_grub_cmdline }}
+      {{ 'New: ' + new_grub_cmdline if new_grub_cmdline is defined else '' }}

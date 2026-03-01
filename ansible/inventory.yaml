@@ -1,0 +1,59 @@
+all:
+  children:
+    # 1. Bare Metal Hypervisors (bm-hypervisor)
+    bm_hypervisor:
+      hosts:
+        bm-hypervisor-01: # aka spacex
+          ansible_host: 192.168.20.20
+        bm-hypervisor-02: # aka canarywharf
+          ansible_host: 192.168.20.33
+        bm-hypervisor-03: # aka oslo
+          ansible_host: 192.168.20.22
+        bm-hypervisor-04: # aka mini
+          ansible_host: 192.168.10.194
+
+    # 2. Kubernetes VM Nodes (vm-k8s-node)
+    vm_k8s_node:
+      hosts:
+        vm-k8s-node-01: # k3s control plane
+          ansible_host: 192.168.20.51
+        vm-k8s-node-02: # k3s worker node
+          ansible_host: 192.168.20.52
+        vm-k8s-node-03: # k3s worker node
+          ansible_host: 192.168.20.53
+
+    # 3. Dev Container Hosts (vm-dev-container)
+    vm_dev_container:
+      hosts:
+        vm-dev-container-01: # for dev Containers
+          ansible_host: 192.168.20.61
+
+    # 4. Service VMs (vm-service)
+    vm_service:
+      hosts:
+        vm-service-01: # General service VM
+          ansible_host: 192.168.20.71
+
+    # 5. GPU VMs (vm-gpu)
+    # VMs with GPU passthrough for ML/AI workloads (Ollama, training)
+    vm_gpu:
+      hosts:
+        vm-gpu-01: # First GPU VM on bm-hypervisor-02 (RTX 3090)
+          ansible_host: 192.168.20.81
+          gpu_vendor: nvidia
+        vm-gpu-02: # Second GPU VM on bm-hypervisor-03 (RX 7900 XTX)
+          ansible_host: 192.168.20.82
+          gpu_vendor: amd
+
+    # 6. Development Desktops (dt-dev)
+    # This group can mix Linux and Mac; Ansible detects OS automatically.
+    dt_dev:
+      hosts:
+        dt-dev-01: # aka norge - Desktop
+          ansible_host: 192.168.10.189
+        dt-dev-02: # aka kafka - old Desktop
+          ansible_host: 192.168.10.135
+        work-mac:
+          ansible_host: localhost
+          ansible_connection: local
+          ansible_python_interpreter: /opt/homebrew/bin/python3

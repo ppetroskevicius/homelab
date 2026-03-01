@@ -1,0 +1,30 @@
+---
+# Main orchestration for dev_languages role
+# Order: Rust first (provides cargo), then asdf before java/node (provides plugins)
+
+- name: Install Rust toolchain
+  ansible.builtin.include_tasks: rust.yml
+
+- name: Install Python tooling
+  ansible.builtin.include_tasks: python.yml
+
+- name: Install asdf version manager
+  ansible.builtin.include_tasks: asdf.yml
+
+- name: Install Node.js and pnpm
+  ansible.builtin.include_tasks: node.yml
+
+- name: Install Go
+  ansible.builtin.include_tasks: golang.yml
+
+- name: Install Java
+  ansible.builtin.include_tasks: java.yml
+
+- name: Install Kotlin
+  ansible.builtin.include_tasks: kotlin.yml
+
+- name: Install Deno
+  ansible.builtin.include_tasks: deno.yml
+
+- name: Install dev tools (lefthook, ktlint)
+  ansible.builtin.include_tasks: dev_tools.yml

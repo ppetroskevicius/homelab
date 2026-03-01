@@ -1,0 +1,91 @@
+---
+- name: Configure Google Drive Rclone Mount (User Level)
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  vars:
+    # Configuration
+    rclone_remote_name: "gdrive_remote"
+    mount_path: "{{ ansible_facts.env.HOME }}/google_drive"
+    service_name: "rclone_gdrive"
+
+    # Rclone Settings
+    rclone_vfs_cache_mode: "full"
+    rclone_vfs_max_size: "10G"
+    rclone_log_level: "NOTICE"
+
+  tasks:
+    # 1. Install Rclone (Requires Sudo)
+    - name: Ensure Rclone is installed
+      become: true
+      ansible.builtin.apt:
+        name: rclone
+        state: present
+        update_cache: false
+
+    # 2. Verify Config Exists (Safety Check)
+    - name: Check if Rclone config exists
+      ansible.builtin.stat:
+        path: "{{ ansible_facts.env.HOME }}/.config/rclone/rclone.conf"
+      register: rclone_conf
+
+    - name: Fail if Rclone config is missing (Chezmoi should have run)
+      ansible.builtin.fail:
+        msg: "Rclone config not found! Please run 'chezmoi apply' first to deploy secrets from 1Password."
+      when: not rclone_conf.stat.exists
+
+    # 3. Create Mount Directory
+    - name: Ensure mount point directory exists
+      ansible.builtin.file:
+        path: "{{ mount_path }}"
+        state: directory
+        mode: "0755"
+
+    # 4. Enable Linger (Allows service to start at boot without login)
+    - name: Enable systemd linger for the user
+      become: true
+      ansible.builtin.command:
+        cmd: "loginctl enable-linger {{ ansible_facts['user_id'] }}"
+        creates: "/var/lib/systemd/linger/{{ ansible_facts['user_id'] }}"
+
+    # 5. Create Systemd Service File
+    - name: Create Systemd user directory
+      ansible.builtin.file:
+        path: "{{ ansible_facts.env.HOME }}/.config/systemd/user"
+        state: directory
+        mode: "0755"
+
+    - name: Deploy Rclone Systemd Service
+      ansible.builtin.copy:
+        dest: "{{ ansible_facts.env.HOME }}/.config/systemd/user/{{ service_name }}.service"
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Rclone Mount for Google Drive
+          Wants=network-online.target
+          After=network-online.target
+
+          [Service]
+          Type=notify
+          # Pointing to the mount path dynamically
+          ExecStart=/usr/bin/rclone mount {{ rclone_remote_name }}: %h/google_drive \
+              --vfs-cache-mode {{ rclone_vfs_cache_mode }} \
+              --vfs-cache-max-size {{ rclone_vfs_max_size }} \
+              --log-file %h/{{ service_name }}.log \
+              --log-level {{ rclone_log_level }}
+          ExecStop=/bin/fusermount -u %h/google_drive
+          Restart=on-failure
+          RestartSec=10
+
+          [Install]
+          WantedBy=default.target
+      notify: Restart Rclone Service
+
+  handlers:
+    - name: Restart Rclone Service
+      ansible.builtin.systemd:
+        scope: user
+        name: "{{ service_name }}"
+        state: restarted
+        enabled: true
+        daemon_reload: true
