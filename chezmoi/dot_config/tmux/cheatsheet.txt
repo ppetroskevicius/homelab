@@ -46,5 +46,10 @@
    Detached HEAD shows short SHA. Updates every 5s.
    ` + ,           Manual rename (disables auto-rename for that window)
 
+ SESSION PERSISTENCE (resurrect + continuum)
+   ` + Ctrl-s         Save session (manual)
+   ` + Ctrl-r         Restore session (manual)
+   Auto-saves every 15 min. Auto-restores on tmux server start.
+
  SHELL: gwa <branch>  gwl  gwr <branch>
  MOUSE: enabled (scroll, click, resize)
