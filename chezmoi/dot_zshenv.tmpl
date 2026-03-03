@@ -1,0 +1,9 @@
+# zshenv runs for ALL zsh invocations (login, interactive, scripts)
+# Environment setup that must always be available goes here
+
+# shellcheck shell=sh
+# shellcheck source=~/.config/shell/common.sh
+# shellcheck disable=SC1090
+[ -f "$HOME/.config/shell/common.sh" ] && . "$HOME/.config/shell/common.sh"
+
+. "$HOME/.cargo/env"

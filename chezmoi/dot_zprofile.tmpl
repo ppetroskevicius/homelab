@@ -5,8 +5,6 @@
 
 # shellcheck shell=sh
 # Minimal zprofile (zsh is the primary login shell)
-# shellcheck source=~/.config/shell/common.sh
-# shellcheck disable=SC1090
 
 # 1Password SSH Agent (personal desktops only - work machines use their own key management)
 {{- if and $isDesktop (not $isWork) }}
@@ -16,8 +14,6 @@ export SSH_AUTH_SOCK="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/
 export SSH_AUTH_SOCK="$HOME/.1password/agent.sock"
 {{-   end }}
 {{- end }}
-
-[ -f "$HOME/.config/shell/common.sh" ] && . "$HOME/.config/shell/common.sh"
 
 # Zsh history settings (set once at login)
 export HISTFILE="$HOME/.zsh_history"
