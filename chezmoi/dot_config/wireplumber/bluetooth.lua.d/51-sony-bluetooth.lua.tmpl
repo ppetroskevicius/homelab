@@ -31,7 +31,7 @@ bluez_monitor.rules = {
     {
         matches = {
             {
-                { "device.name", "matches", "bluez_card.88_C9_E8_DC_ED_8E" },
+                { "device.name", "matches", "bluez_card.{{ .bt_sony_wh1000xm5_mac | replace ":" "_" }}" },
             },
         },
         apply_properties = {

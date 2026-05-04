@@ -1,0 +1,7 @@
+# Personal identity
+email: "p.petroskevicius@gmail.com"
+
+# Bluetooth device MAC addresses (used in i3status-rust config)
+bt_sony_wh1000xm5_mac: "88:C9:E8:DC:ED:8E"
+bt_headset_mac: "04:52:C7:F4:55:2A"
+bt_audio_mac: "C0:EB:D0:FB:A3:AB"

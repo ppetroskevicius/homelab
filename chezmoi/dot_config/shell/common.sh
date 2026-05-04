@@ -184,12 +184,15 @@ gwl() {
 }
 
 gwr() {
-  # Remove worktree: gwr <branch-or-path>
+  # Remove worktree: gwr [-D] <branch-or-path>
+  # -D also deletes the branch after removing the worktree
   if ! git rev-parse --git-dir >/dev/null 2>&1; then
     echo "gwr: not a git repository" >&2; return 1
   fi
+  _delete_branch=0
+  if [ "$1" = "-D" ]; then _delete_branch=1; shift; fi
   if [ -z "$1" ]; then
-    echo "Usage: gwr <branch-or-path>" >&2
+    echo "Usage: gwr [-D] <branch-or-path>" >&2
     git worktree list; return 1
   fi
   _target="$1"
@@ -197,6 +200,7 @@ gwr() {
     */*) ;;  # path — use as-is
     *) _target="$(git rev-parse --show-toplevel)/.worktrees/${_target}" ;;
   esac
-  git worktree remove "$_target"
+  git worktree remove "$_target" && \
+    if [ "$_delete_branch" -eq 1 ]; then git branch -D "$1"; fi
 }
 

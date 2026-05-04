@@ -270,6 +270,19 @@
     state: present
   when: ansible_facts['os_family'] == "Darwin"
 
+# Borders — focused window highlight for AeroSpace (macOS only)
+- name: Tap FelixKratz formulae (macOS)
+  community.general.homebrew_tap:
+    name: FelixKratz/formulae
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+- name: Install borders (macOS)
+  community.general.homebrew:
+    name: borders
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
 # Rancher Desktop (macOS only)
 - name: Install Rancher Desktop (macOS)
   community.general.homebrew_cask:
@@ -288,5 +301,19 @@
 - name: Install Alacritty (macOS)
   community.general.homebrew_cask:
     name: alacritty
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+# Figma (macOS only)
+- name: Install Figma (macOS)
+  community.general.homebrew_cask:
+    name: figma
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+# Slack (macOS only)
+- name: Install Slack (macOS)
+  community.general.homebrew_cask:
+    name: slack
     state: present
   when: ansible_facts['os_family'] == "Darwin"

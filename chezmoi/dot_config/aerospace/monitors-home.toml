@@ -1,11 +1,23 @@
-# Home: Mac (left) + Dell U4323QE 43" vertical (center) + LG 43" horizontal (right)
+# Home: Mac (left) + LG 43" horizontal (right) + Dell U4323QE 43" vertical (center)
 [workspace-to-monitor-force-assignment]
+# Built-in: scratch
 1 = 'built-in'
 2 = 'built-in'
 3 = 'built-in'
-4 = 'dell'
-5 = 'dell'
-6 = 'dell'
-7 = ['lg', 'secondary']
-8 = ['lg', 'secondary']
-9 = ['lg', 'secondary']
+# LG right: scratch + all app workspaces
+4 = ['lg', 'secondary']
+5 = ['lg', 'secondary']
+6 = ['lg', 'secondary']
+G = ['lg', 'secondary']
+N = ['lg', 'secondary']
+A = ['lg', 'secondary']
+T = ['lg', 'secondary']
+W = ['lg', 'secondary']
+O = ['lg', 'secondary']
+D = ['lg', 'secondary']
+I = ['lg', 'secondary']
+# Dell center: scratch + slack
+7 = 'dell'
+8 = 'dell'
+9 = 'dell'
+S = 'dell'

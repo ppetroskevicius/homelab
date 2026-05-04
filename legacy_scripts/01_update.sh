@@ -93,6 +93,9 @@ setup_macos_preferences() {
 		defaults write NSGlobalDomain KeyRepeat -int 2
 		defaults write NSGlobalDomain InitialKeyRepeat -int 15
 
+		# Mouse preferences (scaled up for large external monitors)
+		defaults write -g com.apple.mouse.scaling 8.0
+
 		# Restart affected applications
 		for app in "Finder" "Dock" "SystemUIServer"; do
 			killall "$app" >/dev/null 2>&1 || true

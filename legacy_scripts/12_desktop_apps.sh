@@ -19,7 +19,11 @@ install_desktop_apps() {
 	install_zotero_app
 	install_spotify_app
 
-	if [ "$OS" != "Darwin" ]; then
+	if [ "$OS" = "Darwin" ]; then
+		install_linearmouse_app
+		install_obs_app
+		install_logitech_g_hub_app
+	else
 		install_remote_desktop
 	fi
 }
@@ -88,4 +92,7 @@ install_spotify_app() {
 		sudo apt update && sudo apt install -y spotify-client
 	fi
 }
+install_linearmouse_app() { brew install --cask linearmouse; }
+install_obs_app() { brew install --cask obs; }
+install_logitech_g_hub_app() { brew install --cask logitech-g-hub; }
 install_remote_desktop() { sudo apt install -y remmina; }

@@ -6,7 +6,7 @@
 
 start-at-login = true
 after-login-command = []
-after-startup-command = []
+after-startup-command = ['exec-and-forget borders']
 
 # Normalizations
 enable-normalization-flatten-containers = true
@@ -19,7 +19,7 @@ on-focused-monitor-changed = ["move-mouse monitor-lazy-center"]
 # Layout settings
 accordion-padding = 30
 default-root-container-layout = "tiles"
-default-root-container-orientation = "auto"
+default-root-container-orientation = "horizontal"
 
 # Gaps
 [gaps]
@@ -47,8 +47,12 @@ alt-shift-j = "move down"
 alt-shift-k = "move up"
 alt-shift-l = "move right"
 
-# Fullscreen (Sway: Mod+f)
-alt-f = "fullscreen"
+# Fullscreen (Sway: Mod+f) — moved to Ctrl to free alt-f for Figma workspace
+alt-ctrl-f = "fullscreen"
+
+# Quick resize (no mode switch needed)
+alt-shift-minus = "resize smart -50"
+alt-shift-equal = "resize smart +50"
 
 # Float toggle (Sway: Mod+Shift+space)
 alt-shift-space = "layout floating tiling"
@@ -93,11 +97,33 @@ alt-shift-rightSquareBracket = "focus-monitor next"
 # App launchers
 alt-enter = "exec-and-forget env -u CLAUDECODE ~/.cargo/bin/alacritty"
 alt-shift-q = "close"
-alt-g = "exec-and-forget open -a 'Google Chrome'"
 alt-c = "exec-and-forget open -a 'Visual Studio Code'"
-alt-s = "exec-and-forget open -a Slack"
-alt-a = "exec-and-forget open -a 'Claude'"
-alt-n = "exec-and-forget open -a Notion"
+
+# Letter workspace navigation (letter = app initial)
+alt-g = "workspace G"
+alt-m = "workspace M"
+alt-n = "workspace N"
+alt-a = "workspace A"
+alt-s = "workspace S"
+alt-t = "workspace T"
+alt-w = "workspace W"
+alt-o = "workspace O"
+alt-d = "workspace D"
+alt-i = "workspace I"
+alt-f = "workspace F"
+
+# Move window to letter workspace
+alt-shift-g = "move-node-to-workspace G"
+alt-shift-m = "move-node-to-workspace M"
+alt-shift-n = "move-node-to-workspace N"
+alt-shift-a = "move-node-to-workspace A"
+alt-shift-s = "move-node-to-workspace S"
+alt-shift-t = "move-node-to-workspace T"
+alt-shift-w = "move-node-to-workspace W"
+alt-shift-o = "move-node-to-workspace O"
+alt-shift-d = "move-node-to-workspace D"
+alt-shift-i = "move-node-to-workspace I"
+alt-shift-f = "move-node-to-workspace F"
 
 # Reload config (Sway: Mod+Shift+c)
 alt-shift-c = "reload-config"
@@ -120,35 +146,60 @@ enter = "mode main"
 # Window rules
 # -----------------------------------------------------------
 
-# Alacritty (source build, no app bundle) -> force tiling
+# Alacritty (source build, no app bundle) -> force tiling, terminal workspace
 [[on-window-detected]]
 if.app-name-regex-substring = "alacritty"
-run = ["layout tiling", "move-node-to-workspace 5"]
+run = ["layout tiling", "move-node-to-workspace T"]
 
-# Slack -> workspace 1
+# Slack -> S
 [[on-window-detected]]
 if.app-id = "com.tinyspeck.slackmacgap"
-run = "move-node-to-workspace 1"
+run = "move-node-to-workspace S"
 
-# Notion -> workspace 2
+# Notion -> N
 [[on-window-detected]]
 if.app-id = "notion.id"
-run = "move-node-to-workspace 2"
+run = "move-node-to-workspace N"
 
-# Claude Desktop -> workspace 3
+# Claude Desktop -> A (Anthropic)
 [[on-window-detected]]
 if.app-id = "com.anthropic.claudefordesktop"
-run = "move-node-to-workspace 3"
+run = "move-node-to-workspace A"
 
-# VS Code / Cursor -> workspace 4
+# VS Code / Cursor -> T (tiles with Alacritty)
 [[on-window-detected]]
 if.app-id = "com.todesktop.230313mzl4w4u92"
-run = "move-node-to-workspace 4"
+run = "move-node-to-workspace T"
 
-# Google Chrome -> workspace 5
+# Google Chrome -> G (first window goes to Calendar workspace)
 [[on-window-detected]]
 if.app-id = "com.google.Chrome"
-run = "move-node-to-workspace 5"
+run = "move-node-to-workspace G"
+
+# Obsidian -> O
+[[on-window-detected]]
+if.app-id = "md.obsidian"
+run = "move-node-to-workspace O"
+
+# DataGrip -> D
+[[on-window-detected]]
+if.app-id = "com.jetbrains.datagrip"
+run = "move-node-to-workspace D"
+
+# IntelliJ -> I
+[[on-window-detected]]
+if.app-id = "com.jetbrains.intellij"
+run = "move-node-to-workspace I"
+
+# Spotify -> M (music)
+[[on-window-detected]]
+if.app-id = "com.spotify.client"
+run = "move-node-to-workspace M"
+
+# Figma -> F
+[[on-window-detected]]
+if.app-id = "com.figma.Desktop"
+run = "move-node-to-workspace F"
 
 # System Settings -> float
 [[on-window-detected]]
@@ -173,4 +224,9 @@ run = "layout floating"
 # 1Password -> float
 [[on-window-detected]]
 if.app-id = "com.1password.1password"
+run = "layout floating"
+
+# Notes -> float
+[[on-window-detected]]
+if.app-id = "com.apple.Notes"
 run = "layout floating"

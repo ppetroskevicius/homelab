@@ -65,12 +65,16 @@ alacritty_themes.sh
 tlp.sh
 .config/systemd/
 fingerprint.sh
+# On macOS use Library/Application Support/ paths instead of XDG .config/
+.config/Cursor/
 {{- end }}
 
 # === Linux desktops: ignore macOS-only files ===
 {{- if eq .chezmoi.os "linux" }}
 .config/aerospace/
 .local/bin/aerospace-profile
+# macOS Library paths are meaningless on Linux
+Library/
 {{- end }}
 
 # === Work machines: no personal secrets/infra ===
@@ -82,5 +86,4 @@ etc_wireguard_gw0.conf
 wireguard.sh
 .config/Cursor/
 .config/chezmoi/
-.claude/
 {{- end }}
