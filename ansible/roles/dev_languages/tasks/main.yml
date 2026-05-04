@@ -1,6 +1,6 @@
 ---
 # Main orchestration for dev_languages role
-# Order: Rust first (provides cargo), then asdf before java/node (provides plugins)
+# Order: Rust first (provides cargo), then mise before java/node (provides version management)
 
 - name: Install Rust toolchain
   ansible.builtin.include_tasks: rust.yml
@@ -8,11 +8,8 @@
 - name: Install Python tooling
   ansible.builtin.include_tasks: python.yml
 
-- name: Install asdf version manager
-  ansible.builtin.include_tasks: asdf.yml
-
-- name: Install Node.js and pnpm
-  ansible.builtin.include_tasks: node.yml
+- name: Install mise version manager and global tools
+  ansible.builtin.include_tasks: mise.yml
 
 - name: Install Go
   ansible.builtin.include_tasks: golang.yml

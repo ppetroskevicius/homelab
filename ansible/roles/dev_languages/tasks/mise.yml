@@ -1,0 +1,57 @@
+---
+# Install mise version manager and configure global tool versions
+
+- name: Install mise (macOS via Homebrew)
+  community.general.homebrew:
+    name: mise
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+- name: Install mise (Linux)
+  ansible.builtin.shell: |
+    curl https://mise.run | sh
+  args:
+    executable: /bin/bash
+    creates: "{{ ansible_facts.env.HOME }}/.local/bin/mise"
+  when: ansible_facts['os_family'] == "Debian"
+
+# --- Global Node.js ---
+
+- name: Check current global Node.js version in mise
+  ansible.builtin.shell: |
+    {{ mise_bin_path }} current node 2>/dev/null || echo ""
+  args:
+    executable: /bin/bash
+  register: mise_node_current
+  changed_when: false
+  failed_when: false
+
+- name: Install and set global Node.js version via mise
+  ansible.builtin.shell: |
+    {{ mise_bin_path }} use --global node@{{ mise_nodejs_default }}
+  args:
+    executable: /bin/bash
+  changed_when: true
+  when: mise_nodejs_default not in (mise_node_current.stdout | default(''))
+
+# --- Global Java ---
+
+- name: Check current global Java version in mise
+  ansible.builtin.shell: |
+    {{ mise_bin_path }} current java 2>/dev/null || echo ""
+  args:
+    executable: /bin/bash
+  register: mise_java_current
+  changed_when: false
+  failed_when: false
+  when: mise_java_enabled | default(false)
+
+- name: Install and set global Java version via mise
+  ansible.builtin.shell: |
+    {{ mise_bin_path }} use --global java@{{ mise_java_default }}
+  args:
+    executable: /bin/bash
+  changed_when: true
+  when:
+    - mise_java_enabled | default(false)
+    - mise_java_default not in (mise_java_current.stdout | default(''))

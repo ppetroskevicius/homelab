@@ -31,13 +31,10 @@ fi
 PATH="$HOME/bin:$HOME/.local/bin:$PATH"
 add_to_path "$HOME/.npm-global/bin"
 add_to_path "$HOME/.cargo/bin"
-add_to_path "$HOME/.local/share/pnpm"
 add_to_path "/opt/rocm-6.4.0/bin"
 add_to_path "$HOME/.lmstudio/bin"
 add_to_path "/usr/local/go/bin"
 export PATH
-
-export PNPM_HOME="$HOME/.local/share/pnpm"
 
 # Desktop / hypervisor environment (Linux; optional)
 if [ "$(uname -s)" = "Linux" ]; then
@@ -60,19 +57,10 @@ if command -v keychain >/dev/null 2>&1 && [ -f "$HOME/.ssh/id_ed25519" ]; then
   eval "$(keychain --eval --quiet id_ed25519)"
 fi
 
-# NVM (optional)
-export NVM_DIR="$HOME/.nvm"
-if [ -s "$NVM_DIR/nvm.sh" ]; then
-  . "$NVM_DIR/nvm.sh"
-  if [ -n "${BASH_VERSION-}" ] && [ -s "$NVM_DIR/bash_completion" ]; then
-    . "$NVM_DIR/bash_completion"
-  fi
-fi
-
-# Java (optional) — prefer asdf, fallback to Homebrew/system
+# Java (optional) — prefer mise, fallback to Homebrew/system
 if [ "$(uname -s)" = "Darwin" ]; then
-  if command -v asdf >/dev/null 2>&1 && asdf which java >/dev/null 2>&1; then
-    JAVA_HOME="$(dirname "$(dirname "$(asdf which java)")")"
+  if command -v mise >/dev/null 2>&1 && mise which java >/dev/null 2>&1; then
+    JAVA_HOME="$(dirname "$(dirname "$(mise which java)")")"
   elif command -v brew >/dev/null 2>&1; then
     JAVA_HOME="$(brew --prefix)/opt/openjdk"
   fi
