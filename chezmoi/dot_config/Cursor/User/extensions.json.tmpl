@@ -1,51 +1,62 @@
 {
   "recommendations": [
     // ──────── Python Development ────────
-    "ms-python.python", // Core Python support
-    "charliermarsh.ruff", // Python formatter & linter
+    "ms-python.python",           // Core Python support
+    "charliermarsh.ruff",         // Python formatter & linter (team standard: ruff in pyproject.toml)
 
     // ──────── JavaScript / TypeScript ────────
-    "dbaeumer.vscode-eslint", // JavaScript/TypeScript linter
-    "esbenp.prettier-vscode", // JSTS/MD/JSON/TOML formatter
-    "bradlc.vscode-tailwindcss", // Tailwind CSS IntelliSense
+    "dbaeumer.vscode-eslint",     // JS/TS linter (team standard)
+    "esbenp.prettier-vscode",     // JS/TS/MD/JSON formatter (team standard)
+    "stylelint.vscode-stylelint", // CSS-in-JS linter (team frontend)
+    "styled-components.vscode-styled-components", // styled-components syntax (team frontend)
+    "yoavbls.pretty-ts-errors",   // Readable TypeScript errors (team frontend)
+    "vitest.explorer",            // Vitest test runner UI (team frontend)
+    "denoland.vscode-deno",       // Deno TypeScript runtime support
 
-    // ──────── Shell & DevOps Tools ────────
-    "mkhl.shfmt", // Shell script formatter
-    "timonwong.shellcheck", // Shell script linter
-
-    // ──────── Infrastructure as Code ────────
-    "hashicorp.terraform", // Terraform HCL support
-    "github.vscode-github-actions", // GitHub Actions workflow support
-
-    // ──────── Testing ────────
-    "ms-playwright.playwright", // Playwright testing
-
-    // ──────── Data ────────
-    "prisma.prisma", // Prisma ORM tools
-    "graphql.vscode-graphql-syntax", // GraphQL syntax support
-    "mechatroner.rainbow-csv", // CSV highlighting & manipulation
-
-    // ──────── Markdown ────────
-    "yzhang.markdown-all-in-one", // Markdown All in One
-    "mermaidchart.vscode-mermaid-chart", // Mermaid diagram preview
-
-    // ──────── Rust ────────
-    "rust-lang.rust-analyzer", // Rust support
+    // ──────── Kotlin ────────
+    "mathiasfrohlich.kotlin",     // Kotlin syntax (team uses ktlint + Detekt via Gradle)
 
     // ──────── Go ────────
-    "golang.go", // Go support
+    "golang.go",                  // Go support (team standard: golangci-lint as lintTool)
 
-    // ──────── Java ────────
-    "redhat.java", // Java support
+    // ──────── Shell & DevOps Tools ────────
+    "mkhl.shfmt",                 // Shell script formatter
+    "timonwong.shellcheck",       // Shell script linter
 
-    // ──────── TOML ────────
-    "tamasfe.even-better-toml", // TOML syntax & validation
+    // ──────── Infrastructure as Code ────────
+    "hashicorp.terraform",        // Terraform HCL support (team standard)
+    "redhat.vscode-yaml",         // YAML formatter & schema validation (team infra/mcp)
+    "github.vscode-github-actions", // GitHub Actions workflow support
 
-    // ──────── Pre-commit ────────
-    "elagil.pre-commit-helper", // Pre-commit helper
+    // ──────── Dockerfile ────────
+    "exiasr.hadolint",            // Dockerfile linter (team uses hadolint in CodeRabbit CI)
 
-    // ──────── Knowledge Management ────────
-    "foam.foam-vscode", // Knowledge management/notes
-    "gera2ld.markmap-vscode" // Markdown to mindmap visualization
+    // ──────── Testing ────────
+    "ms-playwright.playwright",   // Playwright testing (team e2e)
+
+    // ──────── Data & Serialisation ────────
+    "mechatroner.rainbow-csv",    // CSV highlighting (team standard)
+    "tamasfe.even-better-toml",   // TOML syntax & validation (pyproject.toml)
+
+    // ──────── Markdown ────────
+    "shd101wyy.markdown-preview-enhanced", // Markdown preview (team frontend)
+    "mermaidchart.vscode-mermaid-chart",   // Mermaid diagram preview
+
+    // ──────── AI Assistants ────────
+    "github.copilot",             // GitHub Copilot (team standard)
+    "github.copilot-chat",        // GitHub Copilot Chat (team standard)
+    "saoudrizwan.claude-dev",     // Cline / Claude Dev (team frontend)
+
+    // ──────── Code Quality ────────
+    "editorconfig.editorconfig",  // EditorConfig support (team standard, every repo)
+    "streetsidesoftware.code-spell-checker", // Spell checker (team frontend/e2e)
+    "usernamehw.errorlens",       // Inline error highlighting (team frontend)
+
+    // ──────── Pre-commit / Hooks ────────
+    "elagil.pre-commit-helper",   // Pre-commit hook helper
+
+    // ──────── Utilities ────────
+    "ms-vscode-remote.remote-containers", // DevContainer support (team infra uses devcontainer)
+    "gera2ld.markmap-vscode"      // Markdown to mindmap visualization
   ]
 }

@@ -29,3 +29,19 @@
     executable: /bin/bash
     creates: "{{ ansible_facts.env.HOME }}/go/bin/shfmt"
   when: ansible_facts['os_family'] == "Debian"
+
+- name: Install golangci-lint (macOS)
+  community.general.homebrew:
+    name: golangci-lint
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+- name: Install golangci-lint via Go (Debian/Ubuntu)
+  ansible.builtin.shell: |
+    export PATH="/usr/lib/go/bin:{{ ansible_facts.env.HOME }}/go/bin:$PATH"
+    export GOPATH="{{ ansible_facts.env.HOME }}/go"
+    go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+  args:
+    executable: /bin/bash
+    creates: "{{ ansible_facts.env.HOME }}/go/bin/golangci-lint"
+  when: ansible_facts['os_family'] == "Debian"

@@ -1,5 +1,5 @@
 ---
-# Install development tools: lefthook, ktlint
+# Install development tools: lefthook, ktlint, hadolint
 
 # --- lefthook (git hooks manager) ---
 
@@ -51,3 +51,36 @@
   when:
     - ansible_facts['os_family'] == "Debian"
     - not (ktlint_check.stat.exists | default(false))
+
+# --- hadolint (Dockerfile linter) ---
+
+- name: Install hadolint (macOS)
+  community.general.homebrew:
+    name: hadolint
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+- name: Check if hadolint is installed (Debian/Ubuntu)
+  ansible.builtin.stat:
+    path: /usr/local/bin/hadolint
+  register: hadolint_check
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Get latest hadolint release version (Debian/Ubuntu)
+  ansible.builtin.uri:
+    url: https://api.github.com/repos/hadolint/hadolint/releases/latest
+    return_content: true
+  register: hadolint_release
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - not (hadolint_check.stat.exists | default(false))
+
+- name: Download hadolint binary (Debian/Ubuntu)
+  ansible.builtin.get_url:
+    url: "https://github.com/hadolint/hadolint/releases/download/{{ hadolint_release.json.tag_name }}/hadolint-Linux-x86_64"
+    dest: /usr/local/bin/hadolint
+    mode: '0755'
+  become: true
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - not (hadolint_check.stat.exists | default(false))

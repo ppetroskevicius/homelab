@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+{{- if and (eq .chezmoi.os "darwin") (eq .machine_type "desktop") }}
+set -euo pipefail
+
+# Install an extension into both VS Code and Cursor if the CLI is available.
+install_ext() {
+    local ext="$1"
+    for cli in code cursor; do
+        if command -v "$cli" >/dev/null 2>&1; then
+            "$cli" --install-extension "$ext" --force 2>/dev/null || true
+        fi
+    done
+}
+
+extensions=(
+    # Python
+    "ms-python.python"
+    "charliermarsh.ruff"
+    # JS / TS
+    "dbaeumer.vscode-eslint"
+    "esbenp.prettier-vscode"
+    "stylelint.vscode-stylelint"
+    "styled-components.vscode-styled-components"
+    "yoavbls.pretty-ts-errors"
+    "vitest.explorer"
+    "denoland.vscode-deno"
+    # Kotlin
+    "mathiasfrohlich.kotlin"
+    # Go
+    "golang.go"
+    # Shell
+    "mkhl.shfmt"
+    "timonwong.shellcheck"
+    # IaC
+    "hashicorp.terraform"
+    "redhat.vscode-yaml"
+    "github.vscode-github-actions"
+    # Docker
+    "exiasr.hadolint"
+    # Testing
+    "ms-playwright.playwright"
+    # Data / serialisation
+    "mechatroner.rainbow-csv"
+    "tamasfe.even-better-toml"
+    # Markdown
+    "shd101wyy.markdown-preview-enhanced"
+    "mermaidchart.vscode-mermaid-chart"
+    # AI assistants
+    "github.copilot"
+    "github.copilot-chat"
+    "saoudrizwan.claude-dev"
+    # Code quality
+    "editorconfig.editorconfig"
+    "streetsidesoftware.code-spell-checker"
+    "usernamehw.errorlens"
+    # Hooks / remote
+    "elagil.pre-commit-helper"
+    "ms-vscode-remote.remote-containers"
+    # Utilities
+    "gera2ld.markmap-vscode"
+)
+
+for ext in "${extensions[@]}"; do
+    install_ext "$ext"
+done
+{{- else }}
+echo "Skipping VS Code extension installation (macOS desktop only)"
+{{- end }}
