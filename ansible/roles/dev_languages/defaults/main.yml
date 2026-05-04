@@ -13,27 +13,19 @@ uv_tools:
   - pytest
   - pre-commit
 
-# Node.js version (LTS)
-node_version: "--lts"
-
 # Go version (use system package)
 go_version: "latest"
 
-# Java package (used when asdf_java_enabled is false)
+# Java package (used when mise_java_enabled is false)
 java_package_debian: "default-jdk"
 java_package_darwin: "openjdk"
 
-# asdf binary path (cross-platform)
-asdf_bin_path: >-
-  {{ '/opt/homebrew/bin' if ansible_facts['os_family'] == 'Darwin'
-  else ansible_facts.env.HOME + '/.asdf/bin' }}
+# mise binary path (cross-platform)
+mise_bin_path: >-
+  {{ '/opt/homebrew/bin/mise' if ansible_facts['os_family'] == 'Darwin'
+  else ansible_facts.env.HOME + '/.local/bin/mise' }}
 
-# Java via asdf
-asdf_java_enabled: true
-asdf_java_versions: ["temurin-17.0.13+11", "temurin-11.0.25+9"]
-asdf_java_default: "temurin-17.0.13+11"
-
-# Node.js via asdf
-asdf_nodejs_enabled: true
-asdf_nodejs_versions: ["22.12.0"]
-asdf_nodejs_default: "22.12.0"
+# Global tool versions managed by mise
+mise_nodejs_default: "22.12.0"
+mise_java_default: "temurin-17.0.13+11"
+mise_java_enabled: true

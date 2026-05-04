@@ -16,11 +16,11 @@ fi
 if command -v direnv >/dev/null 2>&1; then
   eval "$(direnv hook zsh)"
 fi
-{{- if $isWork }}
 
-# asdf version manager (work machine: Java, Node, etc.)
-export PATH="${ASDF_DATA_DIR:-$HOME/.asdf}/shims:$PATH"
-{{- end }}
+# mise - per-project tool version manager
+if command -v mise >/dev/null 2>&1; then
+  eval "$(mise activate zsh)"
+fi
 {{- if eq .chezmoi.os "darwin" }}
 
 # gcloud SDK (Homebrew on macOS)
