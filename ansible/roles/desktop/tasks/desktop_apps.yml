@@ -317,3 +317,29 @@
     name: slack
     state: present
   when: ansible_facts['os_family'] == "Darwin"
+
+# Marp CLI — Markdown presentation to PDF/HTML converter
+- name: Check if marp is installed
+  ansible.builtin.shell: command -v marp
+  register: marp_check
+  changed_when: false
+  failed_when: false
+
+- name: Install Marp CLI (macOS)
+  community.general.homebrew:
+    name: marp-cli
+    state: present
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - marp_check.rc != 0
+
+- name: Install Marp CLI via pnpm (Linux)
+  ansible.builtin.shell: |
+    export PNPM_HOME="{{ ansible_facts.env.HOME }}/.local/share/pnpm"
+    export PATH="$PNPM_HOME:$PATH"
+    pnpm add -g @marp-team/marp-cli
+  args:
+    executable: /bin/bash
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - marp_check.rc != 0
