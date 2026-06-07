@@ -21,3 +21,5 @@ I = ['lg', 'secondary']
 8 = 'dell'
 9 = 'dell'
 S = 'dell'
+# Built-in: Spotify (privacy filter screen)
+M = 'built-in'

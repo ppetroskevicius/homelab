@@ -47,8 +47,8 @@ alt-shift-j = "move down"
 alt-shift-k = "move up"
 alt-shift-l = "move right"
 
-# Fullscreen (Sway: Mod+f) — moved to Ctrl to free alt-f for Figma workspace
-alt-ctrl-f = "fullscreen"
+# Fullscreen (Sway: Mod+f)
+alt-f = "fullscreen"
 
 # Quick resize (no mode switch needed)
 alt-shift-minus = "resize smart -50"
@@ -110,7 +110,7 @@ alt-w = "workspace W"
 alt-o = "workspace O"
 alt-d = "workspace D"
 alt-i = "workspace I"
-alt-f = "workspace F"
+alt-u = "workspace F"
 
 # Move window to letter workspace
 alt-shift-g = "move-node-to-workspace G"
@@ -123,7 +123,7 @@ alt-shift-w = "move-node-to-workspace W"
 alt-shift-o = "move-node-to-workspace O"
 alt-shift-d = "move-node-to-workspace D"
 alt-shift-i = "move-node-to-workspace I"
-alt-shift-f = "move-node-to-workspace F"
+alt-shift-u = "move-node-to-workspace F"
 
 # Reload config (Sway: Mod+Shift+c)
 alt-shift-c = "reload-config"
