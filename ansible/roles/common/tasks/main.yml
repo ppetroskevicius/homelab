@@ -25,6 +25,7 @@
       - netcat-openbsd
       - locales
       - unzip
+      - procps
     state: present
   become: true
   when: ansible_facts['os_family'] == "Debian"
@@ -78,5 +79,6 @@
       - gh
       - coreutils
       - parallel
+      - watch
     state: present
   when: ansible_facts['os_family'] == "Darwin"
