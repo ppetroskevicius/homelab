@@ -3,7 +3,7 @@ set -euo pipefail
 
 CONFIG_DIR="$HOME/.config/aerospace"
 TARGET="$HOME/.aerospace.toml"
-PROFILES=("home" "office" "villa" "cafe")
+PROFILES=("home" "office" "office2" "villa" "cafe")
 
 usage() {
     echo "Usage: aerospace-profile <profile>"

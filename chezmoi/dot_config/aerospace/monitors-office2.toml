@@ -1,0 +1,24 @@
+# Office2: Mac (main, left) + two DELL U27" horizontal monitors (right)
+[workspace-to-monitor-force-assignment]
+# Built-in: scratch
+1 = 'built-in'
+2 = 'built-in'
+3 = 'built-in'
+# Both Dells (secondary): all app workspaces
+4 = 'secondary'
+5 = 'secondary'
+6 = 'secondary'
+7 = 'secondary'
+8 = 'secondary'
+9 = 'secondary'
+G = 'secondary'
+N = 'secondary'
+A = 'secondary'
+T = 'secondary'
+W = 'secondary'
+O = 'secondary'
+D = 'secondary'
+I = 'secondary'
+S = 'secondary'
+# Built-in: Spotify (privacy filter screen)
+M = 'built-in'
