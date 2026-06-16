@@ -106,6 +106,7 @@ alt-n = "workspace N"
 alt-a = "workspace A"
 alt-s = "workspace S"
 alt-t = "workspace T"
+alt-e = "workspace E"
 alt-w = "workspace W"
 alt-o = "workspace O"
 alt-d = "workspace D"
@@ -119,6 +120,7 @@ alt-shift-n = "move-node-to-workspace N"
 alt-shift-a = "move-node-to-workspace A"
 alt-shift-s = "move-node-to-workspace S"
 alt-shift-t = "move-node-to-workspace T"
+alt-shift-e = "move-node-to-workspace E"
 alt-shift-w = "move-node-to-workspace W"
 alt-shift-o = "move-node-to-workspace O"
 alt-shift-d = "move-node-to-workspace D"
@@ -166,10 +168,10 @@ run = "move-node-to-workspace N"
 if.app-id = "com.anthropic.claudefordesktop"
 run = "move-node-to-workspace A"
 
-# VS Code / Cursor -> T (tiles with Alacritty)
+# VS Code / Cursor -> E (editor, right Dell)
 [[on-window-detected]]
 if.app-id = "com.todesktop.230313mzl4w4u92"
-run = "move-node-to-workspace T"
+run = "move-node-to-workspace E"
 
 # Google Chrome -> G (first window goes to Calendar workspace)
 [[on-window-detected]]
