@@ -111,7 +111,7 @@ alt-w = "workspace W"
 alt-o = "workspace O"
 alt-d = "workspace D"
 alt-i = "workspace I"
-alt-u = "workspace F"
+alt-p = "workspace P"
 
 # Move window to letter workspace
 alt-shift-g = "move-node-to-workspace G"
@@ -125,7 +125,7 @@ alt-shift-w = "move-node-to-workspace W"
 alt-shift-o = "move-node-to-workspace O"
 alt-shift-d = "move-node-to-workspace D"
 alt-shift-i = "move-node-to-workspace I"
-alt-shift-u = "move-node-to-workspace F"
+alt-shift-p = "move-node-to-workspace P"
 
 # Reload config (Sway: Mod+Shift+c)
 alt-shift-c = "reload-config"
@@ -168,7 +168,12 @@ run = "move-node-to-workspace N"
 if.app-id = "com.anthropic.claudefordesktop"
 run = "move-node-to-workspace A"
 
-# VS Code / Cursor -> E (editor, right Dell)
+# VS Code -> E (editor)
+[[on-window-detected]]
+if.app-id = "com.microsoft.VSCode"
+run = "move-node-to-workspace E"
+
+# Cursor (ToDesktop bundle) -> E (editor)
 [[on-window-detected]]
 if.app-id = "com.todesktop.230313mzl4w4u92"
 run = "move-node-to-workspace E"
@@ -198,10 +203,10 @@ run = "move-node-to-workspace I"
 if.app-id = "com.spotify.client"
 run = "move-node-to-workspace M"
 
-# Figma -> F
+# Figma -> P
 [[on-window-detected]]
 if.app-id = "com.figma.Desktop"
-run = "move-node-to-workspace F"
+run = "move-node-to-workspace P"
 
 # System Settings -> float
 [[on-window-detected]]

@@ -116,12 +116,13 @@
    Alt + N         Notion
    Alt + A         Claude Desktop (Anthropic)
    Alt + S         Slack
-   Alt + T         Terminal / Cursor (Tiles)
+   Alt + T         Terminal (Alacritty, Tiles)
+   Alt + E         VS Code / Cursor (Editor)
    Alt + W         (free)
    Alt + O         Obsidian
    Alt + D         DataGrip
    Alt + I         IntelliJ
-   Alt + F         Figma
+   Alt + P         Figma
 
    Alt + Shift + <key>   Move window to that workspace
-   Alt + Ctrl  + F       Fullscreen (AeroSpace)
+   Alt + F               Fullscreen (AeroSpace)

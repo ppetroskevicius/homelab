@@ -12,10 +12,12 @@ G = ['lg', 'secondary']
 N = ['lg', 'secondary']
 A = ['lg', 'secondary']
 T = ['lg', 'secondary']
+E = ['lg', 'secondary']
 W = ['lg', 'secondary']
 O = ['lg', 'secondary']
 D = ['lg', 'secondary']
 I = ['lg', 'secondary']
+P = ['lg', 'secondary']
 # Dell center: scratch + slack
 7 = 'dell'
 8 = 'dell'
