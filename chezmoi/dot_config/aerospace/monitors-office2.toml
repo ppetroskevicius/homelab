@@ -1,25 +1,34 @@
-# Office2: Mac (main, left) + two DELL U27" horizontal monitors (right)
+# Office2: Mac (built-in) + two identical DELL U27" monitors
+# Split mirrors the "home" profile:
+#   - built-in  : scratch (1,2,3) + Spotify (M)
+#   - Dell (1)  : main app workspaces  (home's "LG" role)
+#   - Dell (2)  : scratch (7,8,9) + Slack (home's "Dell" role)
+# The two Dells are the same model, so they're told apart by the macOS
+# "(1)"/"(2)" name suffix. Old-desk model names kept as ordered-list
+# fallbacks so this profile still works at the other office desk.
 [workspace-to-monitor-force-assignment]
 # Built-in: scratch
 1 = 'built-in'
 2 = 'built-in'
 3 = 'built-in'
-# Both Dells (secondary): all app workspaces
-4 = 'secondary'
-5 = 'secondary'
-6 = 'secondary'
-7 = 'secondary'
-8 = 'secondary'
-9 = 'secondary'
-G = 'secondary'
-N = 'secondary'
-A = 'secondary'
-T = 'DELL U2719DC'
-E = 'DELL U2721DE'
-W = 'secondary'
-O = 'secondary'
-D = 'secondary'
-I = 'secondary'
-S = 'secondary'
+# Dell (1): scratch + main app workspaces
+4 = ['\(1\)$', 'DELL U2719DC']
+5 = ['\(1\)$', 'DELL U2719DC']
+6 = ['\(1\)$', 'DELL U2719DC']
+G = ['\(1\)$', 'DELL U2719DC']
+N = ['\(1\)$', 'DELL U2719DC']
+A = ['\(1\)$', 'DELL U2719DC']
+T = ['\(1\)$', 'DELL U2719DC']
+E = ['\(1\)$', 'DELL U2719DC']
+W = ['\(1\)$', 'DELL U2719DC']
+O = ['\(1\)$', 'DELL U2719DC']
+D = ['\(1\)$', 'DELL U2719DC']
+I = ['\(1\)$', 'DELL U2719DC']
+P = ['\(1\)$', 'DELL U2719DC']
+# Dell (2): scratch + slack
+7 = ['\(2\)$', 'DELL U2721DE']
+8 = ['\(2\)$', 'DELL U2721DE']
+9 = ['\(2\)$', 'DELL U2721DE']
+S = ['\(2\)$', 'DELL U2721DE']
 # Built-in: Spotify (privacy filter screen)
 M = 'built-in'
