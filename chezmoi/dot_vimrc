@@ -14,7 +14,12 @@ set noswapfile
 set clipboard=unnamed
 set laststatus=2
 set mouse=a
+set ttymouse=sgr
 set backspace=2
+
+" Auto-copy mouse-drag selection to the system clipboard on release.
+" Visual-mode selection covers buffer text only, so line numbers are excluded.
+vnoremap <LeftRelease> "+y
 
 colorscheme desert
 set hlsearch
