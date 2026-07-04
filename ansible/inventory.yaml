@@ -36,14 +36,15 @@ all:
 
     # 5. GPU VMs (vm-gpu)
     # VMs with GPU passthrough for ML/AI workloads (Ollama, training)
+    # Keep these commented until Terraform deploys them.
     vm_gpu:
-      hosts:
-        vm-gpu-01: # First GPU VM on bm-hypervisor-02 (RTX 3090)
-          ansible_host: 192.168.20.81
-          gpu_vendor: nvidia
-        vm-gpu-02: # Second GPU VM on bm-hypervisor-03 (RX 7900 XTX)
-          ansible_host: 192.168.20.82
-          gpu_vendor: amd
+      hosts: {}
+        # vm-gpu-01: # First GPU VM on bm-hypervisor-02 (RTX 3090)
+        #   ansible_host: 192.168.20.81
+        #   gpu_vendor: nvidia
+        # vm-gpu-02: # Second GPU VM on bm-hypervisor-03 (RX 7900 XTX)
+        #   ansible_host: 192.168.20.82
+        #   gpu_vendor: amd
 
     # 6. Development Desktops (dt-dev)
     # This group can mix Linux and Mac; Ansible detects OS automatically.

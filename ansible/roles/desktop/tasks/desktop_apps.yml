@@ -3,14 +3,22 @@
 
 # Starship prompt (cross-platform)
 - name: Check if starship is installed
-  ansible.builtin.shell: command -v starship
+  ansible.builtin.command: which starship
   register: starship_check
   changed_when: false
   failed_when: false
 
+- name: Download Starship install script (Linux)
+  ansible.builtin.get_url:
+    url: https://starship.rs/install.sh
+    dest: /tmp/starship-install.sh
+    mode: '0755'
+  when:
+    - starship_check.rc != 0
+    - ansible_facts['os_family'] == "Debian"
+
 - name: Install Starship prompt (Linux)
-  ansible.builtin.shell: |
-    curl -sS https://starship.rs/install.sh | sh -s -- -y
+  ansible.builtin.command: /tmp/starship-install.sh -y
   args:
     creates: /usr/local/bin/starship
   become: true
@@ -28,7 +36,7 @@
 
 # 1Password GUI
 - name: Check if 1Password is installed (Linux)
-  ansible.builtin.shell: command -v 1password
+  ansible.builtin.command: which 1password
   register: onepassword_check
   changed_when: false
   failed_when: false
@@ -38,7 +46,7 @@
   ansible.builtin.apt:
     name: 1password
     state: present
-    update_cache: yes
+    update_cache: true
   become: true
   when:
     - ansible_facts['os_family'] == "Debian"
@@ -54,7 +62,7 @@
 
 # Google Chrome
 - name: Check if Chrome is installed (Linux)
-  ansible.builtin.shell: command -v google-chrome
+  ansible.builtin.command: which google-chrome
   register: chrome_check
   changed_when: false
   failed_when: false
@@ -116,21 +124,31 @@
 
 # Cursor IDE
 - name: Check if Cursor is installed (Linux)
-  ansible.builtin.shell: command -v cursor
+  ansible.builtin.command: which cursor
   register: cursor_check
   changed_when: false
   failed_when: false
   when: ansible_facts['os_family'] == "Debian"
 
-- name: Install Cursor via official install script (Linux)
-  ansible.builtin.shell: curl https://cursor.com/install -fsS | bash
-  args:
-    executable: /bin/bash
-    creates: /usr/bin/cursor
+- name: Download Cursor install script (Linux)
+  ansible.builtin.get_url:
+    url: https://cursor.com/install
+    dest: /tmp/cursor-install.sh
+    mode: '0755'
   when:
     - ansible_facts['os_family'] == "Debian"
     - cursor_check.rc != 0
-  ignore_errors: true
+
+- name: Install Cursor via official install script (Linux)
+  ansible.builtin.command: /bin/bash /tmp/cursor-install.sh
+  args:
+    creates: /usr/bin/cursor
+  register: cursor_install
+  changed_when: cursor_install.rc == 0
+  failed_when: false
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - cursor_check.rc != 0
 
 - name: Install Cursor (macOS)
   community.general.homebrew_cask:
@@ -151,16 +169,10 @@
     state: present
   when: ansible_facts['os_family'] == "Darwin"
 
-- name: Check if Claude Code is installed (Linux)
-  ansible.builtin.shell: |
-    export PNPM_HOME="{{ ansible_facts.env.HOME }}/.local/share/pnpm"
-    export PATH="$PNPM_HOME:$PATH"
-    command -v claude
-  args:
-    executable: /bin/bash
+- name: Check if Claude Code is installed via pnpm (Linux)
+  ansible.builtin.stat:
+    path: "{{ ansible_facts.env.HOME }}/.local/share/pnpm/claude"
   register: claude_code_check
-  changed_when: false
-  failed_when: false
   when: ansible_facts['os_family'] == "Debian"
 
 - name: Install Claude Code via pnpm (Linux)
@@ -172,9 +184,11 @@
     pnpm add -g @anthropic-ai/claude-code
   args:
     executable: /bin/bash
+  register: claude_code_install
+  changed_when: claude_code_install.rc == 0
   when:
     - ansible_facts['os_family'] == "Debian"
-    - claude_code_check.rc != 0
+    - not claude_code_check.stat.exists
 
 # Claude Desktop app (macOS only)
 - name: Install Claude Desktop (macOS)
@@ -192,7 +206,7 @@
 
 # Discord
 - name: Check if Discord is installed (Linux)
-  ansible.builtin.shell: command -v discord
+  ansible.builtin.command: which discord
   register: discord_check
   changed_when: false
   failed_when: false
@@ -224,20 +238,17 @@
     - not (is_work_mac | default(false))
 
 # Spotify
-- name: Add Spotify GPG key (Linux)
-  ansible.builtin.shell: |
-    curl -sS https://download.spotify.com/debian/pubkey_C85668DF69375001.gpg | \
-    sudo gpg --dearmor --output /etc/apt/trusted.gpg.d/spotify.gpg
-  args:
-    creates: /etc/apt/trusted.gpg.d/spotify.gpg
-  become: true
-  when: ansible_facts['os_family'] == "Debian"
-
 - name: Add Spotify apt repository (Linux)
-  ansible.builtin.apt_repository:
-    repo: "deb http://repository.spotify.com stable non-free"
+  ansible.builtin.deb822_repository:
+    name: spotify
+    types: deb
+    uris: http://repository.spotify.com
+    suites: stable
+    components:
+      - non-free
+    signed_by: https://download.spotify.com/debian/pubkey_C85668DF69375001.gpg
     state: present
-    filename: spotify
+    install_python_debian: true
   become: true
   when: ansible_facts['os_family'] == "Debian"
 
@@ -245,7 +256,7 @@
   ansible.builtin.apt:
     name: spotify-client
     state: present
-    update_cache: yes
+    update_cache: true
   become: true
   when: ansible_facts['os_family'] == "Debian"
 
@@ -258,23 +269,32 @@
     - not (is_work_mac | default(false))
 
 # Zotero reference manager
+- name: Download Zotero repository install script (Linux)
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/retorquere/zotero-deb/master/install.sh
+    dest: /tmp/zotero-deb-install.sh
+    mode: '0755'
+  when: ansible_facts['os_family'] == "Debian"
+
 - name: Add Zotero repository (Linux)
-  ansible.builtin.shell: |
-    wget -qO- https://raw.githubusercontent.com/retorquere/zotero-deb/master/install.sh | sudo bash
+  ansible.builtin.command: /bin/bash /tmp/zotero-deb-install.sh
   args:
     creates: /etc/apt/sources.list.d/zotero.list
   become: true
+  register: zotero_repo_install
+  changed_when: zotero_repo_install.rc == 0
+  failed_when: false
   when: ansible_facts['os_family'] == "Debian"
-  ignore_errors: true
 
 - name: Install Zotero (Linux)
   ansible.builtin.apt:
     name: zotero
     state: present
-    update_cache: yes
+    update_cache: true
   become: true
+  register: zotero_install
+  failed_when: false
   when: ansible_facts['os_family'] == "Debian"
-  ignore_errors: true
 
 - name: Install Zotero (macOS)
   community.general.homebrew_cask:
@@ -349,7 +369,7 @@
 
 # Marp CLI — Markdown presentation to PDF/HTML converter
 - name: Check if marp is installed
-  ansible.builtin.shell: command -v marp
+  ansible.builtin.command: which marp
   register: marp_check
   changed_when: false
   failed_when: false
@@ -369,6 +389,8 @@
     pnpm add -g @marp-team/marp-cli
   args:
     executable: /bin/bash
+  register: marp_install
+  changed_when: marp_install.rc == 0
   when:
     - ansible_facts['os_family'] == "Debian"
     - marp_check.rc != 0

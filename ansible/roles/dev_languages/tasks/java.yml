@@ -19,11 +19,21 @@
     - ansible_facts['os_family'] == "Darwin"
     - not (mise_java_enabled | default(false))
 
+- name: Get Homebrew prefix for OpenJDK symlink
+  ansible.builtin.command: brew --prefix
+  register: homebrew_prefix
+  changed_when: false
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - not (is_work_mac | default(false))
+    - not (mise_java_enabled | default(false))
+
 - name: Symlink OpenJDK for macOS system Java wrappers
-  ansible.builtin.shell: |
-    sudo ln -sfn $(brew --prefix)/opt/openjdk/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk.jdk
-  args:
-    creates: /Library/Java/JavaVirtualMachines/openjdk.jdk
+  ansible.builtin.file:
+    src: "{{ homebrew_prefix.stdout }}/opt/openjdk/libexec/openjdk.jdk"
+    dest: /Library/Java/JavaVirtualMachines/openjdk.jdk
+    state: link
+    force: true
   when:
     - ansible_facts['os_family'] == "Darwin"
     - not (is_work_mac | default(false))

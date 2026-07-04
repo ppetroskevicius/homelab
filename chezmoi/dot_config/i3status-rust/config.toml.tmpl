@@ -64,16 +64,10 @@ block = "sound"
 format = " $icon $output_name{ $volume|}"
 headphones_indicator = true
 [block.mappings]
-{{- if eq .chezmoi.hostname "dt-dev-01" }}
-# ThinkPad P14s audio sinks
-"alsa_output.pci-0000_00_1f.3.analog-stereo" = "Speakers"
-"alsa_output.usb-Lenovo_ThinkPad_USB-C_Dock_Audio_000000000000-00.analog-stereo" = "Lenovo Dock"
-{{- else if eq .chezmoi.hostname "dt-dev-02" }}
-# Dell XPS 15 audio sinks
-"alsa_output.pci-0000_00_1f.3.analog-stereo" = "Speakers"
-{{- else }}
-# Fallback: generic sink names
-"alsa_output.pci-0000_00_1f.3.analog-stereo" = "Speakers"
+{{- $desktopHost := get .desktop_hosts .chezmoi.hostname | default dict }}
+{{- $audioSinks := get $desktopHost "audio_sinks" | default (list (dict "id" "alsa_output.pci-0000_00_1f.3.analog-stereo" "label" "Speakers")) }}
+{{- range $audioSinks }}
+"{{ .id }}" = "{{ .label }}"
 {{- end }}
 {{- $sonyMacUnderscore := .bt_sony_wh1000xm5_mac | replace ":" "_" }}
 {{- $headsetMacUnderscore := .bt_headset_mac | replace ":" "_" }}

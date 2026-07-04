@@ -9,7 +9,7 @@ We are migrating logic from `legacy_scripts/` (documented in `docs/LEGACY_REFERE
 | New Ansible Role    | Source Legacy Scripts                  | Description                                               |
 | :------------------ | :------------------------------------- | :-------------------------------------------------------- |
 | **`common`**        | `01_update`, `05_system`, `14_cleanup` | Updates, Timezone, Basic Utils (vim, git, htop), Cleanup. |
-| **`credentials`**   | `02_credentials`                       | 1Password CLI, SSH directory setup.                       |
+| **`credentials`**   | `02_credentials`                       | 1Password CLI on desktops, SSH directory setup.           |
 | **`dotfiles`**      | `03_shell`, `04_dotfiles`              | Zsh, Oh-My-Zsh, Chezmoi init & apply.                     |
 | **`hypervisor`**    | `06_hypervisor`                        | KVM, Libvirt, Bridge Utils (Run on `bm_hypervisor`).      |
 | **`storage`**       | `07_storage`                           | ZFS Pools, NFS Server/Client (Run on `bm_hypervisor`).    |
@@ -39,14 +39,14 @@ We are migrating logic from `legacy_scripts/` (documented in `docs/LEGACY_REFERE
 
 - [x] **Role: `credentials`**
 
-  - [x] Install 1Password CLI.
-  - [x] Ensure `OP_SERVICE_ACCOUNT_TOKEN` is usable by the remote session.
+  - [x] Install 1Password CLI on desktops.
+  - [x] Keep non-desktop machines independent of 1Password for login/runtime.
 
 - [x] **Role: `dotfiles`**
 
   - [x] Port `install_zsh` logic from `03_shell.sh`.
-  - [x] Install `chezmoi`.
-  - [x] Run `chezmoi init --apply` (ensure idempotency).
+  - [x] Install `chezmoi` on desktops.
+  - [x] Run `chezmoi init` on desktops; user applies after 1Password sign-in.
 
 - [x] **Role: `storage`** (Refer to [`docs/STORAGE.md`](docs/STORAGE.md))
 

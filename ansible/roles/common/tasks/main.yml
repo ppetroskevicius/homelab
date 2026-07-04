@@ -2,14 +2,22 @@
 - name: Update Apt Cache (Ubuntu/Debian)
   ansible.builtin.apt:
     update_cache: true
-    upgrade: dist
+    cache_valid_time: 3600
   become: true
   when: ansible_facts['os_family'] == "Debian"
+
+- name: Upgrade Apt Packages (Ubuntu/Debian)
+  ansible.builtin.apt:
+    upgrade: dist
+  become: true
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - common_upgrade_packages | bool
 
 - name: Update Homebrew (macOS)
   community.general.homebrew:
     update_homebrew: true
-    upgrade_all: true
+    upgrade_all: "{{ common_upgrade_packages | bool }}"
   when: ansible_facts['os_family'] == "Darwin"
 
 - name: Install Basic Utilities (Ubuntu)

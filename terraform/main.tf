@@ -1,4 +1,4 @@
-# main.tf - Core infrastructure resources (libvirt provider v0.9+)
+# main.tf - Core infrastructure resources (libvirt provider v0.8.x)
 
 # =============================================================================
 # Base Image Volume

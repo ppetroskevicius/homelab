@@ -9,9 +9,9 @@ MODULES_DIR="$SCRIPT_DIR/legacy_scripts"
 # 2. Define Global Variables (before sourcing modules)
 # These are used across multiple modules and must be defined first
 OS=$(uname -s)
-SOURCE_REPO="https://github.com/ppetroskevicius/tiny-config.git"
-TARGET_DIR="$HOME/fun/tiny-config"
-CHEZMOI_REPO="https://github.com/ppetroskevicius/dotfiles.git"
+SOURCE_REPO="https://github.com/ppetroskevicius/homelab.git"
+TARGET_DIR="$HOME/fun/homelab"
+CHEZMOI_REPO="$SOURCE_REPO"
 OP_ACCOUNT="my"
 OP_SSH_KEY_NAME="op://build/my-ssh-key/id_ed25519"
 OP_WG_CONFIG_NAME="op://network/wireguard/conf"
@@ -46,7 +46,7 @@ if [ $# -eq 0 ]; then
   exit 1
 fi
 
-# Route arguments to functions defined in scripts/profiles.sh
+# Route arguments to functions defined in legacy_scripts/15_profiles.sh
 case "$1" in
 "bm-hypervisor") profile_bm_hypervisor ;;
 "vm-k8s-node") profile_vm_k8s_node ;;

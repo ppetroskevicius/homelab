@@ -26,6 +26,7 @@ homelab/                          # Monorepo root
 │   └── roles/dotfiles/
 │       ├── tasks/main.yml        # Copies from chezmoi/ for non-desktops
 │       └── templates/
+│           ├── gitconfig.j2      # Server/VM git config
 │           └── ssh_config.j2     # SSH config without 1Password agent
 └── terraform/
 ```
@@ -41,9 +42,9 @@ Ansible prepares the desktop with a working Sway environment:
 ```yaml
 # What Ansible does:
 1. Install GPU drivers, fonts
-2. Build desktop tools (alacritty, kickoff, i3status-rs) via cargo
-3. Deploy bootstrap Sway config (minimal, functional)
-4. Install Sway/Wayland packages
+2. Install Sway/Wayland packages and bootstrap Sway config
+3. Build desktop tools (alacritty, kickoff, i3status-rs) via cargo
+4. Install desktop applications
 5. Install zsh, Oh My Zsh, plugins
 6. Download chezmoi binary
 7. Clone homelab monorepo to ~/fun/homelab
@@ -51,8 +52,8 @@ Ansible prepares the desktop with a working Sway environment:
 ```
 
 The **bootstrap Sway config** provides:
-- Terminal access (`Mod+Return` → alacritty)
-- App launcher (`Mod+d` → kickoff)
+- Terminal access (`Mod+Return` → foot)
+- App launcher (`Mod+d` → wofi)
 - Basic window management keybinds
 
 This solves the chicken-and-egg problem: user can launch Sway, open terminal, set up 1Password.
@@ -76,8 +77,8 @@ This is required because chezmoi templates use 1Password for secrets (rclone, wi
 
 | Aspect | Bootstrap (Ansible) | Full (Chezmoi) |
 |--------|---------------------|----------------|
-| Terminal | alacritty | alacritty |
-| Launcher | kickoff | kickoff |
+| Terminal | foot | alacritty |
+| Launcher | wofi | kickoff |
 | Status bar | Basic (no i3status-rs) | i3status-rs |
 | Monitor layout | Generic | Host-specific |
 | Autostart apps | None | Firefox, htop |
@@ -123,17 +124,18 @@ Ansible copies these files from the chezmoi source directory:
 | `dot_vimrc` | `~/.vimrc` | Vim config |
 | `dot_tmux.conf` | `~/.tmux.conf` | Tmux config |
 | `dot_editorconfig` | `~/.editorconfig` | Editor formatting |
-| `private_dot_gitconfig` | `~/.gitconfig` | Git SSH enforcement |
+| *(Ansible template)* | `~/.gitconfig` | Git SSH enforcement |
 | `dot_config/shell/common.sh` | `~/.config/shell/common.sh` | Common shell functions |
 | *(Ansible template)* | `~/.ssh/config` | SSH hosts (no 1Password agent) |
 
-### Single Source of Truth
+### Source of Truth
 
-The chezmoi directory is the source of truth for both:
-- **Desktops**: Chezmoi applies files directly
-- **Non-desktops**: Ansible copies files from chezmoi directory
+The `chezmoi/` directory is the source of truth for shared static dotfiles.
+Non-desktop files that need rendering, such as `.gitconfig` and `.ssh/config`,
+are Ansible templates in `ansible/roles/dotfiles/templates/`.
 
-This ensures consistency - edit once in `chezmoi/`, changes apply to all machines.
+Desktop UI hardware data for Sway, Mako, and i3status-rust lives in
+`chezmoi/.chezmoidata.yaml`.
 
 ## File Filtering (.chezmoiignore)
 
@@ -144,27 +146,27 @@ The `.chezmoiignore` file prevents desktop-only files from being applied on non-
 # These are ignored on non-desktop machines:
 
 # Zsh (servers use bash)
-dot_zshrc
-dot_zprofile
+.zshrc
+.zprofile
 
 # GUI configs
-dot_config/sway/
-dot_config/alacritty/
-dot_config/starship.toml.tmpl
+.config/sway/
+.config/alacritty/
+.config/starship.toml
 
 # 1Password integration
-dot_config/1Password/
-dot_config/rclone/
-dot_aws/
+.config/1Password/
+.config/rclone/
+.aws/
 
 # Audio
-dot_config/pipewire/
-dot_config/wireplumber/
+.config/pipewire/
+.config/wireplumber/
 
 # Desktop-specific
-dot_config/Cursor/
-dot_config/systemd/
-dot_config/chezmoi/
+.config/Cursor/
+.config/systemd/
+.config/chezmoi/
 ...
 {{- end }}
 ```
