@@ -34,10 +34,18 @@
   changed_when: false
 
 - name: Add Docker repository
-  ansible.builtin.apt_repository:
-    repo: "deb [arch={{ dpkg_arch.stdout }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_facts['distribution_release'] }} stable"
+  ansible.builtin.deb822_repository:
+    name: docker
+    types: deb
+    uris: https://download.docker.com/linux/ubuntu
+    suites: "{{ ansible_facts['distribution_release'] }}"
+    components:
+      - stable
+    architectures:
+      - "{{ dpkg_arch.stdout }}"
+    signed_by: /etc/apt/keyrings/docker.asc
     state: present
-    filename: docker
+    install_python_debian: true
   become: true
 
 - name: Install Docker packages

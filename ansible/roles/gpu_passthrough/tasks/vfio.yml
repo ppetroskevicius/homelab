@@ -29,16 +29,66 @@
 # VFIO PCI Device Binding
 # -----------------------------------------------------------------------------
 
+- name: Build list of extra PCI functions for VFIO binding
+  ansible.builtin.set_fact:
+    gpu_passthrough_extra_pci_slots: >-
+      {{
+        gpu_passthrough_devices
+        | selectattr('extra_pci_slots', 'defined')
+        | map(attribute='extra_pci_slots')
+        | flatten
+      }}
+
+- name: Discover extra PCI function device IDs
+  ansible.builtin.command:
+    cmd: "lspci -nns {{ item }}"
+  register: gpu_passthrough_extra_pci_check
+  changed_when: false
+  loop: "{{ gpu_passthrough_extra_pci_slots }}"
+  when: gpu_passthrough_extra_pci_slots | length > 0
+
+- name: Parse extra PCI function device IDs
+  ansible.builtin.set_fact:
+    gpu_passthrough_extra_device_ids: >-
+      {{
+        gpu_passthrough_extra_pci_check.results | default([])
+        | map(attribute='stdout')
+        | map('regex_search', '\\[([0-9a-fA-F]{4}:[0-9a-fA-F]{4})\\]', '\\1')
+        | map('first')
+        | list
+      }}
+
 - name: Build list of PCI device IDs for VFIO binding
+  ansible.builtin.set_fact:
+    gpu_passthrough_primary_device_ids: >-
+      {{
+        gpu_passthrough_devices
+        | map(attribute='vendor_id')
+        | zip(gpu_passthrough_devices | map(attribute='device_id'))
+        | map('join', ':')
+        | list
+      }}
+    gpu_passthrough_audio_device_ids: >-
+      {{
+        gpu_passthrough_devices
+        | selectattr('audio_device_id', 'defined')
+        | map(attribute='vendor_id')
+        | zip(
+          gpu_passthrough_devices
+          | selectattr('audio_device_id', 'defined')
+          | map(attribute='audio_device_id')
+        )
+        | map('join', ':')
+        | list
+      }}
+
+- name: Build combined PCI device IDs for VFIO binding
   ansible.builtin.set_fact:
     vfio_device_ids: >-
       {{
-        gpu_passthrough_devices | map(attribute='vendor_id') | zip(gpu_passthrough_devices | map(attribute='device_id'))
-        | map('join', ':') | list
-        +
-        (gpu_passthrough_devices | selectattr('audio_device_id', 'defined') | map(attribute='vendor_id') | zip(
-          gpu_passthrough_devices | selectattr('audio_device_id', 'defined') | map(attribute='audio_device_id')
-        ) | map('join', ':') | list)
+        gpu_passthrough_primary_device_ids
+        + gpu_passthrough_audio_device_ids
+        + (gpu_passthrough_extra_device_ids | default([]))
       }}
 
 - name: Remove duplicate device IDs
@@ -101,7 +151,11 @@
 
 - name: Check current VFIO-PCI bindings
   ansible.builtin.shell:
-    cmd: lspci -nnk | grep -A2 -E "VGA|3D controller|Audio device" | head -30
+    cmd: |
+      set -o pipefail
+      lspci -nnk | grep -A2 -E "VGA|3D controller|Audio device" | head -30
+  args:
+    executable: /bin/bash
   register: vfio_binding_check
   changed_when: false
   failed_when: false

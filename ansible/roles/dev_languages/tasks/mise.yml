@@ -7,11 +7,16 @@
     state: present
   when: ansible_facts['os_family'] == "Darwin"
 
+- name: Download mise install script (Linux)
+  ansible.builtin.get_url:
+    url: https://mise.run
+    dest: /tmp/mise-install.sh
+    mode: '0755'
+  when: ansible_facts['os_family'] == "Debian"
+
 - name: Install mise (Linux)
-  ansible.builtin.shell: |
-    curl https://mise.run | sh
+  ansible.builtin.command: sh /tmp/mise-install.sh
   args:
-    executable: /bin/bash
     creates: "{{ ansible_facts.env.HOME }}/.local/bin/mise"
   when: ansible_facts['os_family'] == "Debian"
 

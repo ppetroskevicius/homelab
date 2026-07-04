@@ -34,7 +34,8 @@
     state: present
   become: true
   when: ansible_facts['os_family'] == "Debian"
-  ignore_errors: true
+  register: playwright_deps_install
+  failed_when: false
 
 - name: Install Playwright via pnpm
   ansible.builtin.shell: |
@@ -65,4 +66,5 @@
   when: not playwright_cache.stat.exists
   async: 600
   poll: 30
-  ignore_errors: true
+  register: playwright_browsers_install
+  failed_when: false

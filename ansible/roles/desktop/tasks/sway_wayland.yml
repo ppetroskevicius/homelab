@@ -47,16 +47,17 @@
   ansible.builtin.user:
     name: "{{ ansible_facts['user_id'] }}"
     groups: video
-    append: yes
+    append: true
   become: true
 
 - name: Enable TLP service
   ansible.builtin.systemd:
     name: tlp
-    enabled: yes
+    enabled: true
     state: started
   become: true
-  ignore_errors: true
+  register: tlp_service
+  failed_when: false
 
 - name: Create XDG portal config directory
   ansible.builtin.file:
