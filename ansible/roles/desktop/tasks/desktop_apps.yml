@@ -161,6 +161,13 @@
     executable: /bin/bash
   when: claude_code_check.rc != 0
 
+# Codex CLI (macOS only)
+- name: Install Codex CLI (macOS)
+  community.general.homebrew_cask:
+    name: codex
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
 # Discord
 - name: Check if Discord is installed (Linux)
   ansible.builtin.shell: command -v discord
