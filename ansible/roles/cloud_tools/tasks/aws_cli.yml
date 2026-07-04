@@ -2,7 +2,7 @@
 # Install AWS CLI v2
 
 - name: Check if AWS CLI is already installed
-  ansible.builtin.shell: command -v aws
+  ansible.builtin.command: which aws
   register: aws_check
   changed_when: false
   failed_when: false
@@ -21,13 +21,13 @@
   ansible.builtin.unarchive:
     src: /tmp/awscliv2.zip
     dest: /tmp
-    remote_src: yes
+    remote_src: true
   when:
     - ansible_facts['os_family'] == "Debian"
     - aws_check.rc != 0
 
 - name: Install AWS CLI v2 (Linux)
-  ansible.builtin.shell: /tmp/aws/install --update
+  ansible.builtin.command: /tmp/aws/install --update
   args:
     creates: /usr/local/bin/aws
   become: true
@@ -57,10 +57,10 @@
     - aws_check.rc != 0
 
 - name: Install AWS CLI v2 (macOS)
-  ansible.builtin.shell: |
-    sudo installer -pkg /tmp/AWSCLIV2.pkg -target /
+  ansible.builtin.command: installer -pkg /tmp/AWSCLIV2.pkg -target /
   args:
     creates: /usr/local/bin/aws
+  become: true
   when:
     - ansible_facts['os_family'] == "Darwin"
     - aws_check.rc != 0

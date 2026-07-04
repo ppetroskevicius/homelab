@@ -26,24 +26,25 @@ This document maps all packages, tools, and configurations to the 5 machine type
 
 | Package/Tool           | bm-hypervisor | vm-k8s-node | vm-dev-container | vm-service | dt-dev | Notes                |
 | ---------------------- | ------------- | ----------- | ---------------- | ---------- | ------ | -------------------- |
-| 1Password CLI          | ✓             | ✓           | ✓                | ✓          | ✓      | Password manager CLI |
-| Credentials (SSH keys) | ✓             | ✓           | ✓                | ✓          | ✓      | From 1Password       |
+| 1Password CLI          | ✗             | ✗           | ✗                | ✗          | ✓      | Desktop interactive use only |
+| Credentials (SSH keys) | ✗             | ✗           | ✗                | ✗          | ✓      | Private keys stay on desktops |
 
 ## 3. Setup Zsh
 
 | Package/Tool | bm-hypervisor | vm-k8s-node | vm-dev-container | vm-service | dt-dev | Notes         |
 | ------------ | ------------- | ----------- | ---------------- | ---------- | ------ | ------------- |
-| zsh          | ✓             | ✓           | ✓                | ✓          | ✓      | Z shell       |
-| oh-my-zsh    | ✓             | ✓           | ✓                | ✓          | ✓      | Zsh framework |
+| zsh          | ✗             | ✗           | ✗                | ✗          | ✓      | Desktop shell |
+| oh-my-zsh    | ✗             | ✗           | ✗                | ✗          | ✓      | Desktop shell framework |
 
 ## 4. Dotfiles
 
 | Package/Tool         | bm-hypervisor | vm-k8s-node | vm-dev-container | vm-service | dt-dev | Notes                                 |
 | -------------------- | ------------- | ----------- | ---------------- | ---------- | ------ | ------------------------------------- |
-| Dotfiles (all)       | ✓             | ✓           | ✓                | ✓          | ✓      | All dotfiles (per user preference)    |
+| Dotfiles (minimal)   | ✓             | ✓           | ✓                | ✓          | ✗      | Bash, Vim, tmux, Git, SSH via Ansible |
+| Dotfiles (full)      | ✗             | ✗           | ✗                | ✗          | ✓      | Full Chezmoi-managed desktop config   |
 | SSH config           | ✓             | ✓           | ✓                | ✓          | ✓      | SSH configuration                     |
 | Git config           | ✓             | ✓           | ✓                | ✓          | ✓      | Git configuration                     |
-| Zsh config           | ✓             | ✓           | ✓                | ✓          | ✓      | Zsh configuration                     |
+| Zsh config           | ✗             | ✗           | ✗                | ✗          | ✓      | Zsh configuration                     |
 | Tmux config          | ✓             | ✓           | ✓                | ✓          | ✓      | Tmux configuration                    |
 | Vim config           | ✓             | ✓           | ✓                | ✓          | ✓      | Vim configuration                     |
 | Alacritty config     | ✗             | ✗           | ✗                | ✗          | ✓      | Terminal config                       |

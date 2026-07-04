@@ -5,3 +5,55 @@ email: "p.petroskevicius@gmail.com"
 bt_sony_wh1000xm5_mac: "88:C9:E8:DC:ED:8E"
 bt_headset_mac: "04:52:C7:F4:55:2A"
 bt_audio_mac: "C0:EB:D0:FB:A3:AB"
+
+# Linux desktop hardware data consumed by Sway, Mako, and i3status-rust templates.
+desktop_hosts:
+  dt-dev-01:
+    display_config:
+      - output: DP-9
+        transform: "270"
+        position: "0,0"
+      - output: DP-8
+        position: "2160,1000"
+      - output: eDP-1
+        position: "6000,2160"
+    workspace_outputs:
+      "1": eDP-1
+      "2": DP-9
+      "3": DP-8
+      "4": DP-8
+      "5": DP-8
+      "6": DP-8
+      "7": DP-8
+      "8": DP-8
+      "9": DP-8
+      "10": DP-8
+    touchscreen_id: ""
+    notification_output: DP-8
+    audio_sinks:
+      - id: "alsa_output.pci-0000_00_1f.3.analog-stereo"
+        label: "Speakers"
+      - id: "alsa_output.usb-Lenovo_ThinkPad_USB-C_Dock_Audio_000000000000-00.analog-stereo"
+        label: "Lenovo Dock"
+  dt-dev-02:
+    display_config:
+      - output: eDP-1
+        scale: "2"
+        position: "0,0"
+    workspace_outputs:
+      "1": eDP-1
+      "2": eDP-1
+      "3": eDP-1
+      "4": eDP-1
+      "5": eDP-1
+      "6": eDP-1
+      "7": eDP-1
+      "8": eDP-1
+      "9": eDP-1
+      "10": eDP-1
+    touchscreen_id: "1386:18575:Wacom_HID_488F_Finger"
+    touchscreen_output: eDP-1
+    notification_output: eDP-1
+    audio_sinks:
+      - id: "alsa_output.pci-0000_00_1f.3.analog-stereo"
+        label: "Speakers"

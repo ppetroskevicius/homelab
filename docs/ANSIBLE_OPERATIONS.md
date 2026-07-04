@@ -156,19 +156,20 @@ Install collections:
 ansible-galaxy collection install -r requirements.yml
 ```
 
-### 2. Add Missing Roles
+### 2. Current Roles
 
-The `site.yml` references several roles that don't exist yet:
+The main playbook currently uses these roles:
 
-- `dotfiles` - For chezmoi dotfiles management
-- `hypervisor` - For KVM/libvirt setup
-- `storage` - For ZFS/RAID/NFS configuration
-- `container` - For Docker/K3s setup
-- `desktop` - For desktop environment
-- `dev_languages` - For development language tools
-- `cloud_tools` - For cloud CLI tools
-
-These will be created incrementally as needed.
+- `common` - Package cache refresh, base utilities, timezone, snap removal
+- `credentials` - 1Password CLI on desktops, SSH directory setup
+- `dotfiles` - Chezmoi bootstrap on desktops, minimal dotfile copy on servers/VMs
+- `hypervisor` - KVM/libvirt and bridge setup
+- `storage` - ZFS, NFS exports/mounts, local storage mounts
+- `gpu_passthrough` - IOMMU and VFIO setup on enabled hypervisors
+- `container` - Docker and K3s
+- `desktop` - Sway, desktop apps, audio, fonts, rclone sync
+- `dev_languages` - Rust, Python tooling, mise, Go, Java/Kotlin, Deno
+- `cloud_tools` - AWS/GCP CLIs, Terraform, GitHub CLI, Playwright/Firebase utilities
 
 ### 3. Set Up SSH Keys
 

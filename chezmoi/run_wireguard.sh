@@ -12,7 +12,8 @@ if [ "$(uname -s)" != "Darwin" ]; then
   echo ">>> Installing WireGuard config..."
 
   # Use chezmoi to execute the template and install it
-  chezmoi execute-template </home/fastctl/fun/homelab/chezmoi/private_etc_wireguard_gw0.conf.tmpl |
+  source_dir="$(chezmoi source-path)"
+  chezmoi execute-template <"$source_dir/private_etc_wireguard_gw0.conf.tmpl" |
     sudo tee /etc/wireguard/gw0.conf >/dev/null
 
   sudo chmod 600 /etc/wireguard/gw0.conf

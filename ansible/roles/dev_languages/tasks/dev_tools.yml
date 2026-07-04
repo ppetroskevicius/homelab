@@ -75,9 +75,21 @@
     - ansible_facts['os_family'] == "Debian"
     - not (hadolint_check.stat.exists | default(false))
 
+- name: Build hadolint download URL (Debian/Ubuntu)
+  ansible.builtin.set_fact:
+    hadolint_binary_url: >-
+      {{
+        'https://github.com/hadolint/hadolint/releases/download/'
+        ~ hadolint_release.json.tag_name
+        ~ '/hadolint-Linux-x86_64'
+      }}
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - not (hadolint_check.stat.exists | default(false))
+
 - name: Download hadolint binary (Debian/Ubuntu)
   ansible.builtin.get_url:
-    url: "https://github.com/hadolint/hadolint/releases/download/{{ hadolint_release.json.tag_name }}/hadolint-Linux-x86_64"
+    url: "{{ hadolint_binary_url }}"
     dest: /usr/local/bin/hadolint
     mode: '0755'
   become: true

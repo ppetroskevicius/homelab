@@ -6,11 +6,13 @@
 - name: Update GRUB
   ansible.builtin.command:
     cmd: update-grub
+  changed_when: true
   listen: Update GRUB
 
 - name: Update initramfs
   ansible.builtin.command:
     cmd: update-initramfs -u
+  changed_when: true
   listen: Update initramfs
 
 - name: Notify reboot required

@@ -2,3 +2,4 @@
 - name: Reload NFS exports
   ansible.builtin.command: exportfs -ra
   become: true
+  changed_when: true

@@ -2,14 +2,20 @@
 # Install Python tooling via UV (Astral's fast Python package manager)
 
 - name: Check if uv is already installed
-  ansible.builtin.shell: command -v uv
+  ansible.builtin.command: which uv
   register: uv_check
   changed_when: false
   failed_when: false
 
-- name: Install UV via curl (Linux/macOS)
-  ansible.builtin.shell: |
-    curl -LsSf https://astral.sh/uv/install.sh | sh
+- name: Download UV install script (Linux/macOS)
+  ansible.builtin.get_url:
+    url: https://astral.sh/uv/install.sh
+    dest: /tmp/uv-install.sh
+    mode: '0755'
+  when: uv_check.rc != 0
+
+- name: Install UV (Linux/macOS)
+  ansible.builtin.command: sh /tmp/uv-install.sh
   args:
     creates: "{{ ansible_facts.env.HOME }}/.local/bin/uv"
   when: uv_check.rc != 0
@@ -34,8 +40,8 @@
   register: uv_install_result
   changed_when: "'Installed' in uv_install_result.stdout"
 
-# Shell linting tools (shellcheck, shfmt)
-- name: Install shellcheck and shfmt (Debian/Ubuntu)
+# Shell linting tools. Debian gets shfmt via Go in golang.yml.
+- name: Install shellcheck (Debian/Ubuntu)
   ansible.builtin.apt:
     name:
       - shellcheck

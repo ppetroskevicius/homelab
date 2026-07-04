@@ -16,9 +16,15 @@
     path: "{{ ansible_facts.env.HOME }}/.sdkman"
   register: sdkman_exists
 
+- name: Download SDKMAN install script
+  ansible.builtin.get_url:
+    url: https://get.sdkman.io
+    dest: /tmp/sdkman-install.sh
+    mode: '0755'
+  when: not sdkman_exists.stat.exists
+
 - name: Install SDKMAN
-  ansible.builtin.shell: |
-    curl -s "https://get.sdkman.io" | bash
+  ansible.builtin.command: bash /tmp/sdkman-install.sh
   args:
     creates: "{{ ansible_facts.env.HOME }}/.sdkman/bin/sdkman-init.sh"
   when: not sdkman_exists.stat.exists
