@@ -293,10 +293,26 @@
   when: ansible_facts['os_family'] == "Debian"
 
 # AeroSpace tiling window manager (macOS only)
+- name: Tap nikitabobko/tap (macOS)
+  community.general.homebrew_tap:
+    name: nikitabobko/tap
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
 - name: Install AeroSpace (macOS)
   community.general.homebrew_cask:
     name: aerospace
     state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+# Homebrew's tap-trust gate blocks future brew operations on third-party
+# formulae/casks until explicitly trusted (community.general has no module for
+# this yet, so `brew trust` is idempotent on its own — it reports "Already
+# trusted" and exits 0 on repeat runs).
+- name: Trust AeroSpace cask (macOS)
+  ansible.builtin.command: brew trust --cask nikitabobko/tap/aerospace
+  register: trust_aerospace
+  changed_when: "'Already trusted' not in trust_aerospace.stdout"
   when: ansible_facts['os_family'] == "Darwin"
 
 # Borders — focused window highlight for AeroSpace (macOS only)
@@ -310,6 +326,12 @@
   community.general.homebrew:
     name: borders
     state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+- name: Trust borders formula (macOS)
+  ansible.builtin.command: brew trust --formula felixkratz/formulae/borders
+  register: trust_borders
+  changed_when: "'Already trusted' not in trust_borders.stdout"
   when: ansible_facts['os_family'] == "Darwin"
 
 # Rancher Desktop (macOS only)
