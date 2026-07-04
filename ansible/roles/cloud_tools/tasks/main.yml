@@ -1,6 +1,9 @@
 ---
 # Main orchestration for cloud_tools role
-# On work-mac, only GCP CLI is installed (other tools are managed externally)
+# On work-mac, only GCP CLI and Terraform are installed (other tools are managed externally).
+# Terraform here is only for contract-one-local's optional pubsub-topics flow (targets
+# terraform/google_cloud/env/local, which has no required_version constraint). Actual infra
+# plan/apply for contract-one-infrastructure still goes through its pinned 1.11.1 devcontainer.
 
 - name: Install AWS CLI
   ansible.builtin.include_tasks: aws_cli.yml
@@ -11,7 +14,6 @@
 
 - name: Install Terraform
   ansible.builtin.include_tasks: terraform.yml
-  when: not (is_work_mac | default(false))
 
 - name: Install GitHub CLI
   ansible.builtin.include_tasks: github_cli.yml
