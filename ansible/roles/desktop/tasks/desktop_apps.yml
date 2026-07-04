@@ -138,8 +138,14 @@
     state: present
   when: ansible_facts['os_family'] == "Darwin"
 
-# Claude Code via pnpm
-- name: Check if Claude Code is installed
+# Claude Code (macOS via Homebrew cask, Linux via pnpm)
+- name: Install Claude Code (macOS)
+  community.general.homebrew_cask:
+    name: claude-code
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+- name: Check if Claude Code is installed (Linux)
   ansible.builtin.shell: |
     export PNPM_HOME="{{ ansible_facts.env.HOME }}/.local/share/pnpm"
     export PATH="$PNPM_HOME:$PATH"
@@ -149,8 +155,9 @@
   register: claude_code_check
   changed_when: false
   failed_when: false
+  when: ansible_facts['os_family'] == "Debian"
 
-- name: Install Claude Code via pnpm
+- name: Install Claude Code via pnpm (Linux)
   ansible.builtin.shell: |
     export NVM_DIR="{{ ansible_facts.env.HOME }}/.nvm"
     [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
@@ -159,7 +166,16 @@
     pnpm add -g @anthropic-ai/claude-code
   args:
     executable: /bin/bash
-  when: claude_code_check.rc != 0
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - claude_code_check.rc != 0
+
+# Claude Desktop app (macOS only)
+- name: Install Claude Desktop (macOS)
+  community.general.homebrew_cask:
+    name: claude
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
 
 # Codex CLI (macOS only)
 - name: Install Codex CLI (macOS)
