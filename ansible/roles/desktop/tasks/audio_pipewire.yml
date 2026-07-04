@@ -11,7 +11,7 @@
 - name: Enable Bluetooth service
   ansible.builtin.systemd:
     name: bluetooth
-    enabled: yes
+    enabled: true
     state: started
   become: true
   when: ansible_facts['os_family'] == "Debian"
@@ -21,10 +21,11 @@
   ansible.builtin.user:
     name: "{{ ansible_facts['user_id'] }}"
     groups: bluetooth
-    append: yes
+    append: true
   become: true
   when: ansible_facts['os_family'] == "Debian"
-  ignore_errors: true
+  register: bluetooth_group_update
+  failed_when: false
 
 - name: Create PipeWire user config directory
   ansible.builtin.file:
@@ -37,11 +38,12 @@
   ansible.builtin.systemd:
     name: "{{ item }}"
     scope: user
-    enabled: yes
+    enabled: true
     state: started
   loop:
     - pipewire
     - pipewire-pulse
     - wireplumber
   when: ansible_facts['os_family'] == "Debian"
-  ignore_errors: true
+  register: pipewire_user_services
+  failed_when: false

@@ -51,7 +51,7 @@
   when: is_desktop
 
 - name: Install Oh My Zsh
-  ansible.builtin.git:
+  ansible.builtin.git: # noqa: latest[git]
     repo: https://github.com/ohmyzsh/ohmyzsh.git
     dest: "{{ user_home }}/.oh-my-zsh"
     depth: 1
@@ -68,7 +68,7 @@
   when: is_desktop
 
 - name: Install zsh-autosuggestions plugin
-  ansible.builtin.git:
+  ansible.builtin.git: # noqa: latest[git]
     repo: https://github.com/zsh-users/zsh-autosuggestions.git
     dest: "{{ user_home }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
     depth: 1
@@ -149,10 +149,10 @@
   when: is_desktop
 
 - name: Clone homelab monorepo (desktops)
-  ansible.builtin.git:
+  ansible.builtin.git: # noqa: latest[git]
     repo: git@github.com:ppetroskevicius/homelab.git
     dest: "{{ user_home }}/fun/homelab"
-    accept_hostkey: yes
+    accept_hostkey: true
   become: false
   environment: >-
     {{ {} if (is_work_mac | default(false))
@@ -268,8 +268,8 @@
   when: not is_desktop
 
 - name: Copy .gitconfig (non-desktops)
-  ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../chezmoi/private_dot_gitconfig"
+  ansible.builtin.template:
+    src: gitconfig.j2
     dest: "{{ user_home }}/.gitconfig"
     owner: "{{ target_user }}"
     group: "{{ target_user }}"

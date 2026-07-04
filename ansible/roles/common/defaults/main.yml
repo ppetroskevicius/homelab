@@ -1,0 +1,4 @@
+---
+# Keep normal configuration runs predictable. Enable explicitly for maintenance:
+# ansible-playbook site.yml -e common_upgrade_packages=true
+common_upgrade_packages: false

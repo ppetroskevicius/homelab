@@ -35,6 +35,7 @@
     path: /etc/environment
     line: "LIBVIRT_DEFAULT_URI=qemu:///system"
     create: true
+    mode: '0644'
   become: true
   when: ansible_facts['os_family'] == "Debian"
 
@@ -54,6 +55,7 @@
     src: /etc/netplan/
     dest: /etc/netplan.backup/
     remote_src: true
+    mode: preserve
   become: true
   when: br0_check.rc != 0
 

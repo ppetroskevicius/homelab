@@ -5,16 +5,8 @@
 font=Cozette 11
 format=<b>%a ⏵</b> %s\n%b
 sort=-time
-{{- if eq .chezmoi.hostname "dt-dev-01" }}
-# ThinkPad P14s - notifications on main external monitor
-output=DP-8
-{{- else if eq .chezmoi.hostname "dt-dev-02" }}
-# Dell XPS 15 - notifications on primary display
-output=eDP-1
-{{- else }}
-# Fallback: primary display
-output=eDP-1
-{{- end }}
+{{- $desktopHost := get .desktop_hosts .chezmoi.hostname | default dict }}
+output={{ get $desktopHost "notification_output" | default "eDP-1" }}
 layer=overlay
 anchor=top-right
 background-color=#2e3440

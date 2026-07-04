@@ -7,7 +7,9 @@
   ansible.builtin.assert:
     that:
       - gpu_passthrough.cpu_vendor in ['intel', 'amd']
-    fail_msg: "gpu_passthrough.cpu_vendor must be 'intel' or 'amd', got: {{ gpu_passthrough.cpu_vendor | default('undefined') }}"
+    fail_msg: >-
+      gpu_passthrough.cpu_vendor must be 'intel' or 'amd',
+      got: {{ gpu_passthrough.cpu_vendor | default('undefined') }}
     success_msg: "CPU vendor: {{ gpu_passthrough.cpu_vendor }}"
 
 - name: Validate GPU devices are specified
@@ -23,7 +25,9 @@
       - item.pci_slot is defined
       - item.vendor_id is defined
       - item.device_id is defined
-    fail_msg: "GPU device {{ item.name | default('unnamed') }} missing required fields (pci_slot, vendor_id, device_id)"
+    fail_msg: >-
+      GPU device {{ item.name | default('unnamed') }} missing required fields
+      (pci_slot, vendor_id, device_id)
     success_msg: "GPU device {{ item.name }} validated: {{ item.pci_slot }}"
   loop: "{{ gpu_passthrough_devices }}"
   loop_control:
@@ -31,7 +35,11 @@
 
 - name: Check if IOMMU is enabled in kernel
   ansible.builtin.shell:
-    cmd: dmesg | grep -i -E 'DMAR|IOMMU|AMD-Vi' | head -5
+    cmd: |
+      set -o pipefail
+      dmesg | grep -i -E 'DMAR|IOMMU|AMD-Vi' | head -5
+  args:
+    executable: /bin/bash
   register: iommu_dmesg
   changed_when: false
   failed_when: false
@@ -43,7 +51,9 @@
 
 - name: Warn if IOMMU not detected (may need reboot after GRUB changes)
   ansible.builtin.debug:
-    msg: "WARNING: IOMMU not detected in dmesg. If this is a fresh setup, a reboot is required after GRUB configuration."
+    msg: >-
+      WARNING: IOMMU not detected in dmesg. If this is a fresh setup,
+      a reboot is required after GRUB configuration.
   when: iommu_dmesg.stdout_lines | length == 0 or 'IOMMU' not in iommu_dmesg.stdout
 
 - name: Verify PCI devices exist
@@ -55,6 +65,16 @@
   loop: "{{ gpu_passthrough_devices }}"
   loop_control:
     label: "{{ item.name | default(item.pci_slot) }}"
+
+- name: Verify extra PCI functions exist
+  ansible.builtin.command:
+    cmd: "lspci -s {{ item.1 }}"
+  register: gpu_passthrough_extra_pci_check
+  changed_when: false
+  failed_when: gpu_passthrough_extra_pci_check.rc != 0
+  loop: "{{ gpu_passthrough_devices | subelements('extra_pci_slots', skip_missing=True) }}"
+  loop_control:
+    label: "{{ item.0.name | default(item.0.pci_slot) }} extra {{ item.1 }}"
 
 - name: Display detected PCI devices
   ansible.builtin.debug:

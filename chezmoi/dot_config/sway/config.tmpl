@@ -46,21 +46,11 @@ focus_on_window_activation smart
 #
 # You can get the names of your outputs by running: swaymsg -t get_outputs
 
-# Monitor layout (hostname-specific)
-{{- if eq .chezmoi.hostname "dt-dev-01" }}
-# ThinkPad P14s with Lenovo dock
-# - DP-9 (Dell, vertical): leftmost
-# - DP-8 (LG, horizontal): to the right of DP-9
-# - eDP-1 (laptop): below DP-8, left-aligned
-output DP-9 transform 270 position 0,0
-output DP-8 position 2160,1000
-output eDP-1 position 6000,2160
-{{- else if eq .chezmoi.hostname "dt-dev-02" }}
-# Dell XPS 15 - Sharp 4K display (3840x2160) with 2x scaling
-output eDP-1 scale 2 position 0,0
-{{- else }}
-# Fallback: single display
-output eDP-1 position 0,0
+# Monitor layout
+{{- $desktopHost := get .desktop_hosts .chezmoi.hostname | default dict }}
+{{- $displayConfig := get $desktopHost "display_config" | default (list (dict "output" "eDP-1" "position" "0,0")) }}
+{{- range $displayConfig }}
+output {{ .output }}{{ if hasKey . "transform" }} transform {{ .transform }}{{ end }}{{ if hasKey . "scale" }} scale {{ .scale }}{{ end }} position {{ .position }}
 {{- end }}
 
 ### Idle configuration
@@ -291,14 +281,13 @@ bindsym $mod+g exec env XDG_CURRENT_DESKTOP=sway XDG_SESSION_TYPE=wayland /usr/b
 # and imported into systemd, so they're available automatically
 bindsym $mod+o exec firefox
 
-# configure notebook touchscreen (hostname-specific)
-{{- if eq .chezmoi.hostname "dt-dev-02" }}
-# Dell XPS 15 - Wacom touchscreen (finger + pen digitizer)
-set $builtin_display "eDP-1"
-set $touch_input "1386:18575:Wacom_HID_488F_Finger"
+# configure notebook touchscreen
+{{- $touchInput := get $desktopHost "touchscreen_id" | default "" }}
+{{- if $touchInput }}
+set $builtin_display "{{ get $desktopHost "touchscreen_output" | default "eDP-1" }}"
+set $touch_input "{{ $touchInput }}"
 input $touch_input map_to_output $builtin_display
 {{- end }}
-# Note: dt-dev-01 (ThinkPad P14s) does not have a touchscreen
 
 # setup screen shotting
 bindsym $mod+Shift+p exec shotman --capture region --copy
@@ -306,9 +295,6 @@ bindsym $mod+Ctrl+p  exec shotman --capture output --copy
 
 # run image editor
 bindsym $mod+i exec oculante
-
-# Re-detect external monitor (useful when monitor is turned off/on)
-bindsym $mod+Shift+m exec /home/fastctl/fun/tiny-config/redetect_monitor.sh
 
 # Import environment variables for Wayland screen sharing
 # These must run in order: import env vars, update D-Bus, then start services
@@ -332,44 +318,10 @@ exec mako
 # check output names
 # swaymsg -t get_outputs
 
-# assign workspaces to outputs (hostname-specific)
-{{- if eq .chezmoi.hostname "dt-dev-01" }}
-# ThinkPad P14s with Lenovo dock - multi-monitor layout
-# Note: External monitor output name can vary (DP-1, DP-3, DP-8, etc.) depending on dock port
-workspace 1 output eDP-1
-workspace 2 output DP-9
-workspace 3 output DP-8
-workspace 4 output DP-8
-workspace 5 output DP-8
-workspace 6 output DP-8
-workspace 7 output DP-8
-workspace 8 output DP-8
-workspace 9 output DP-8
-workspace 10 output DP-8
-{{- else if eq .chezmoi.hostname "dt-dev-02" }}
-# Dell XPS 15 - single display or update after dock discovery
-workspace 1 output eDP-1
-workspace 2 output eDP-1
-workspace 3 output eDP-1
-workspace 4 output eDP-1
-workspace 5 output eDP-1
-workspace 6 output eDP-1
-workspace 7 output eDP-1
-workspace 8 output eDP-1
-workspace 9 output eDP-1
-workspace 10 output eDP-1
-{{- else }}
-# Fallback: all workspaces on primary display
-workspace 1 output eDP-1
-workspace 2 output eDP-1
-workspace 3 output eDP-1
-workspace 4 output eDP-1
-workspace 5 output eDP-1
-workspace 6 output eDP-1
-workspace 7 output eDP-1
-workspace 8 output eDP-1
-workspace 9 output eDP-1
-workspace 10 output eDP-1
+# assign workspaces to outputs
+{{- $workspaceOutputs := get $desktopHost "workspace_outputs" | default dict }}
+{{- range $workspace := list "1" "2" "3" "4" "5" "6" "7" "8" "9" "10" }}
+workspace {{ $workspace }} output {{ get $workspaceOutputs $workspace | default "eDP-1" }}
 {{- end }}
 
 # assign apps to workspaces

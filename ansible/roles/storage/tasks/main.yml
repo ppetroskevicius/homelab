@@ -16,7 +16,7 @@
 
 - name: Check if ZFS pools exist
   ansible.builtin.command: zpool list "{{ item.name }}"
-  loop: "{{ zfs_pools }}"
+  loop: "{{ zfs_pools | default([]) }}"
   register: zpool_check
   failed_when: false
   changed_when: false
@@ -36,7 +36,8 @@
     -O atime={{ item.item.properties.atime }}
     -m {{ item.item.mountpoint }}
     {{ item.item.devices | join(' ') }}
-  loop: "{{ zpool_check.results }}"
+  loop: "{{ zpool_check.results | default([]) }}"
+  changed_when: true
   become: true
   when:
     - inventory_hostname == 'bm-hypervisor-01'
@@ -86,7 +87,7 @@
     path: "{{ item.path }}"
     state: directory
     mode: '0755'
-  loop: "{{ nfs_mounts }}"
+  loop: "{{ nfs_mounts | default([]) }}"
   become: true
   when:
     - inventory_hostname in ['bm-hypervisor-02', 'bm-hypervisor-03']
@@ -99,7 +100,7 @@
     fstype: "{{ item.fstype }}"
     opts: "{{ item.opts }}"
     state: mounted
-  loop: "{{ nfs_mounts }}"
+  loop: "{{ nfs_mounts | default([]) }}"
   become: true
   when:
     - inventory_hostname in ['bm-hypervisor-02', 'bm-hypervisor-03']

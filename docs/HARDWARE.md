@@ -11,6 +11,9 @@ I have below two desktops: one Thinkpad (main) and another Dell (backup). I want
 
 I am worried, that there are hardware specific configurations that I did to my Ubuntu Server 24.04 (minimized) with Sway installation.
 
+Current source of truth for rendered desktop UI hardware settings is `chezmoi/.chezmoidata.yaml`.
+That data feeds the Sway, Mako, and i3status-rust templates.
+
 From what I remember:
 
 - Netplan configuration have different ethernet and wifi interfaces names, also both have the wifi passwords, which should be probably handled in 1password through the Ansible templates using variables with correct interface names, and wifi passwords retrieved from 1password integration.

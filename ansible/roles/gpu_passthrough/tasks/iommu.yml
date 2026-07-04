@@ -14,7 +14,16 @@
 
 - name: Parse current GRUB_CMDLINE_LINUX_DEFAULT
   ansible.builtin.set_fact:
-    current_grub_cmdline: "{{ (grub_config_raw.content | b64decode | regex_search('GRUB_CMDLINE_LINUX_DEFAULT=\"([^\"]*)\"', '\\1') | first) | default('quiet splash') }}"
+    current_grub_cmdline: >-
+      {{
+        (
+          grub_config_raw.content
+          | b64decode
+          | regex_search('GRUB_CMDLINE_LINUX_DEFAULT="([^"]*)"', '\\1')
+          | first
+        )
+        | default('quiet splash')
+      }}
 
 - name: Check if IOMMU parameters already present
   ansible.builtin.set_fact:
@@ -48,6 +57,7 @@
 - name: Display GRUB configuration status
   ansible.builtin.debug:
     msg: >-
-      IOMMU kernel parameters: {{ 'already configured' if (iommu_present and iommu_pt_present) else 'updated - reboot required' }}
+      IOMMU kernel parameters:
+      {{ 'already configured' if (iommu_present and iommu_pt_present) else 'updated - reboot required' }}
       Current: {{ current_grub_cmdline }}
       {{ 'New: ' + new_grub_cmdline if new_grub_cmdline is defined else '' }}

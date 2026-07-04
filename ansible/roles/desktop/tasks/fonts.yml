@@ -13,13 +13,13 @@
   ansible.builtin.unarchive:
     src: "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.3.0/{{ item }}.zip"
     dest: "{{ ansible_facts.env.HOME }}/.local/share/fonts"
-    remote_src: yes
+    remote_src: true
     creates: "{{ ansible_facts.env.HOME }}/.local/share/fonts/{{ item }}NerdFont-Regular.ttf"
   loop: "{{ nerd_fonts }}"
   when: ansible_facts['os_family'] == "Debian"
 
 - name: Update font cache (Linux)
-  ansible.builtin.shell: fc-cache -fv
+  ansible.builtin.command: fc-cache -fv
   changed_when: false
   when: ansible_facts['os_family'] == "Debian"
 
@@ -35,4 +35,5 @@
       - font-intone-mono-nerd-font
     state: present
   when: ansible_facts['os_family'] == "Darwin"
-  ignore_errors: true
+  register: macos_font_install
+  failed_when: false
