@@ -132,6 +132,12 @@
     - cursor_check.rc != 0
   ignore_errors: true
 
+- name: Install Cursor (macOS)
+  community.general.homebrew_cask:
+    name: cursor
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
 - name: Install VS Code (macOS)
   community.general.homebrew_cask:
     name: visual-studio-code
