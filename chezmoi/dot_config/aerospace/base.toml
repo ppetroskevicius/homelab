@@ -4,9 +4,21 @@
 # This is the base config. Monitor-specific workspace assignments
 # are appended by the `aerospace-profile` script.
 
+# Opt into config-version 2 (see AeroSpace guide). v2 stops inferring
+# persistent-workspaces from key bindings, so we declare them explicitly
+# below to preserve the exact v1 behavior.
+config-version = 2
+
 start-at-login = true
 after-login-command = []
 after-startup-command = ['exec-and-forget borders']
+
+# In v1 these were auto-inferred from the workspace key bindings; declaring
+# them explicitly keeps behavior identical under v2 (regression prevention).
+persistent-workspaces = [
+    "1", "2", "3", "4", "5", "6", "7", "8", "9",
+    "G", "M", "N", "A", "S", "T", "E", "W", "O", "D", "I", "P",
+]
 
 # Normalizations
 enable-normalization-flatten-containers = true
