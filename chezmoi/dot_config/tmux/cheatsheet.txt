@@ -64,8 +64,10 @@
 
  SESSIONS
    ` + f           Sessionizer (fzf project picker → create/switch session)
-   ` + s           List sessions
+   ` + S           Switch running session (fzf popup, running sessions only)
+   ` + s           Session tree (built-in interactive list)
    ` + $           Rename session
+   RMB status-left Right-click session name → Rename/New/Kill/Switch menu
    tmux new -s X   Create session named X
    tmux a -t X     Attach to session X
 
