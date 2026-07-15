@@ -26,6 +26,12 @@ fi
 # gcloud SDK (Homebrew on macOS)
 if [ -d "/opt/homebrew/share/google-cloud-sdk/bin" ]; then
   export PATH="/opt/homebrew/share/google-cloud-sdk/bin:$PATH"
+  # Pin gcloud's own Python to Homebrew's python@3.14 (the gcloud-cli cask
+  # dependency), independent of any active uv/project virtualenv. Avoids the
+  # deprecated system Python 3.9 that gcloud otherwise falls back to.
+  if [ -x "/opt/homebrew/bin/python3.14" ]; then
+    export CLOUDSDK_PYTHON="/opt/homebrew/bin/python3.14"
+  fi
 fi
 {{- end }}
 
