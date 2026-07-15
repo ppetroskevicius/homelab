@@ -2,13 +2,13 @@
 # Default variables for cloud_tools role
 
 # AWS CLI version
-aws_cli_version: "2"
+cloud_tools_aws_cli_version: "2"
 
 # Terraform version (managed via apt repo)
-terraform_version: "latest"
+cloud_tools_terraform_version: "latest"
 
 # Playwright Linux dependencies
-playwright_deps_debian:
+cloud_tools_playwright_deps_debian:
   - libwoff1
   - libevent-2.1-7t64
   - libopus0
