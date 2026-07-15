@@ -3,7 +3,7 @@
 
 - name: Check if gh is already installed
   ansible.builtin.command: which gh
-  register: gh_check
+  register: cloud_tools_gh_check
   changed_when: false
   failed_when: false
 
@@ -24,7 +24,7 @@
   become: true
   when:
     - ansible_facts['os_family'] == "Debian"
-    - gh_check.rc != 0
+    - cloud_tools_gh_check.rc != 0
 
 - name: Install GitHub CLI (Linux)
   ansible.builtin.apt:
@@ -34,7 +34,7 @@
   become: true
   when:
     - ansible_facts['os_family'] == "Debian"
-    - gh_check.rc != 0
+    - cloud_tools_gh_check.rc != 0
 
 # macOS installation
 - name: Install GitHub CLI (macOS)
@@ -43,4 +43,4 @@
     state: present
   when:
     - ansible_facts['os_family'] == "Darwin"
-    - gh_check.rc != 0
+    - cloud_tools_gh_check.rc != 0

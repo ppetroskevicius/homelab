@@ -19,3 +19,13 @@ export SSH_AUTH_SOCK="$HOME/.1password/agent.sock"
 export HISTFILE="$HOME/.zsh_history"
 export HISTSIZE=50000
 export SAVEHIST=10000
+{{- if eq .chezmoi.os "darwin" }}
+
+# Put user bin dirs ahead of macOS system paths. /etc/zprofile runs
+# path_helper *before* this file, shuffling /usr/bin in front of ~/.local/bin
+# (added by common.sh in .zshenv). Without this, the uv python3 shim in
+# ~/.local/bin is shadowed by the deprecated system Python 3.9. Re-assert
+# here (after path_helper) and de-duplicate. zsh-only syntax.
+# shellcheck disable=SC3030,SC3044,SC2128
+typeset -U path && path=("$HOME/.local/bin" "$HOME/bin" $path)
+{{- end }}

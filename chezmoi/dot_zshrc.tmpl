@@ -26,6 +26,12 @@ fi
 # gcloud SDK (Homebrew on macOS)
 if [ -d "/opt/homebrew/share/google-cloud-sdk/bin" ]; then
   export PATH="/opt/homebrew/share/google-cloud-sdk/bin:$PATH"
+  # Pin gcloud's own Python to Homebrew's python@3.14 (the gcloud-cli cask
+  # dependency), independent of any active uv/project virtualenv. Avoids the
+  # deprecated system Python 3.9 that gcloud otherwise falls back to.
+  if [ -x "/opt/homebrew/bin/python3.14" ]; then
+    export CLOUDSDK_PYTHON="/opt/homebrew/bin/python3.14"
+  fi
 fi
 {{- end }}
 
@@ -36,3 +42,10 @@ export PATH="$HOME/.rd/bin:$PATH"
 # Deno
 export DENO_INSTALL="$HOME/.deno"
 export PATH="$DENO_INSTALL/bin:$PATH"
+
+# De-duplicate PATH keeping first occurrence. Runs last, after every prepend
+# above, so it collapses repeats (e.g. google-cloud-sdk/bin) that scalar
+# `export PATH=` assignments reintroduce. Complements the ordering fix in
+# .zprofile. zsh-only syntax.
+# shellcheck disable=SC3030,SC3044
+typeset -U path
