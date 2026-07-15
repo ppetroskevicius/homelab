@@ -30,11 +30,11 @@
 # Playwright for browser automation
 - name: Install Playwright Linux dependencies
   ansible.builtin.apt:
-    name: "{{ playwright_deps_debian }}"
+    name: "{{ cloud_tools_playwright_deps_debian }}"
     state: present
   become: true
   when: ansible_facts['os_family'] == "Debian"
-  register: playwright_deps_install
+  register: cloud_tools_playwright_deps_install
   failed_when: false
 
 - name: Install Playwright via pnpm
@@ -51,7 +51,7 @@
 - name: Check if Playwright browsers are installed
   ansible.builtin.stat:
     path: "{{ ansible_facts.env.HOME }}/.cache/ms-playwright"
-  register: playwright_cache
+  register: cloud_tools_playwright_cache
 
 - name: Install Playwright browsers (Chromium and Firefox only)
   ansible.builtin.shell: |
@@ -63,8 +63,8 @@
   args:
     executable: /bin/bash
   changed_when: false
-  when: not playwright_cache.stat.exists
+  when: not cloud_tools_playwright_cache.stat.exists
   async: 600
   poll: 30
-  register: playwright_browsers_install
+  register: cloud_tools_playwright_browsers_install
   failed_when: false

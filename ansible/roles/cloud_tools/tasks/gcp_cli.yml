@@ -3,7 +3,7 @@
 
 - name: Check if gcloud is already installed
   ansible.builtin.command: which gcloud
-  register: gcloud_check
+  register: cloud_tools_gcloud_check
   changed_when: false
   failed_when: false
 
@@ -33,7 +33,7 @@
   become: true
   when:
     - ansible_facts['os_family'] == "Debian"
-    - gcloud_check.rc != 0
+    - cloud_tools_gcloud_check.rc != 0
 
 - name: Install Google Cloud CLI (Linux)
   ansible.builtin.apt:
@@ -43,13 +43,17 @@
   become: true
   when:
     - ansible_facts['os_family'] == "Debian"
-    - gcloud_check.rc != 0
+    - cloud_tools_gcloud_check.rc != 0
 
 # macOS installation via Homebrew
-- name: Install Google Cloud SDK (macOS)
+# The cask was renamed google-cloud-sdk -> gcloud-cli; it depends on python@3.14.
+# CLOUDSDK_PYTHON (pinning gcloud to python@3.14) is intentionally NOT set here:
+# macOS hosts are desktops whose shell env is owned by chezmoi (dot_zshrc.tmpl),
+# and Linux uses the apt google-cloud-cli package with a modern system Python.
+- name: Install Google Cloud CLI (macOS)
   community.general.homebrew_cask:
-    name: google-cloud-sdk
+    name: gcloud-cli
     state: present
   when:
     - ansible_facts['os_family'] == "Darwin"
-    - gcloud_check.rc != 0
+    - cloud_tools_gcloud_check.rc != 0

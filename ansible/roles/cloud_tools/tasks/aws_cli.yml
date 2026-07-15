@@ -3,7 +3,7 @@
 
 - name: Check if AWS CLI is already installed
   ansible.builtin.command: which aws
-  register: aws_check
+  register: cloud_tools_aws_check
   changed_when: false
   failed_when: false
 
@@ -15,7 +15,7 @@
     mode: '0644'
   when:
     - ansible_facts['os_family'] == "Debian"
-    - aws_check.rc != 0
+    - cloud_tools_aws_check.rc != 0
 
 - name: Unzip AWS CLI installer (Linux)
   ansible.builtin.unarchive:
@@ -24,7 +24,7 @@
     remote_src: true
   when:
     - ansible_facts['os_family'] == "Debian"
-    - aws_check.rc != 0
+    - cloud_tools_aws_check.rc != 0
 
 - name: Install AWS CLI v2 (Linux)
   ansible.builtin.command: /tmp/aws/install --update
@@ -33,7 +33,7 @@
   become: true
   when:
     - ansible_facts['os_family'] == "Debian"
-    - aws_check.rc != 0
+    - cloud_tools_aws_check.rc != 0
 
 - name: Clean up AWS CLI installer (Linux)
   ansible.builtin.file:
@@ -44,7 +44,7 @@
     - /tmp/aws
   when:
     - ansible_facts['os_family'] == "Debian"
-    - aws_check.rc != 0
+    - cloud_tools_aws_check.rc != 0
 
 # macOS installation
 - name: Download AWS CLI v2 (macOS)
@@ -54,7 +54,7 @@
     mode: '0644'
   when:
     - ansible_facts['os_family'] == "Darwin"
-    - aws_check.rc != 0
+    - cloud_tools_aws_check.rc != 0
 
 - name: Install AWS CLI v2 (macOS)
   ansible.builtin.command: installer -pkg /tmp/AWSCLIV2.pkg -target /
@@ -63,7 +63,7 @@
   become: true
   when:
     - ansible_facts['os_family'] == "Darwin"
-    - aws_check.rc != 0
+    - cloud_tools_aws_check.rc != 0
 
 - name: Clean up AWS CLI installer (macOS)
   ansible.builtin.file:
@@ -71,4 +71,4 @@
     state: absent
   when:
     - ansible_facts['os_family'] == "Darwin"
-    - aws_check.rc != 0
+    - cloud_tools_aws_check.rc != 0
