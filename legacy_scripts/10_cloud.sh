@@ -23,12 +23,22 @@ install_aws_cli() {
 install_gcp_cli() {
 	if ! command -v gcloud >/dev/null; then
 		if [ "$OS" = "Darwin" ]; then
-			brew install --cask google-cloud-sdk
+			# Homebrew renamed this cask (google-cloud-sdk -> gcloud-cli). It
+			# depends on python@3.14, satisfying gcloud's Python >= 3.10 need.
+			brew install --cask gcloud-cli
 		else
 			echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list >/dev/null
 			curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor --yes -o /usr/share/keyrings/cloud.google.gpg
 			sudo apt-get update && sudo apt-get install -y google-cloud-cli
 		fi
+	fi
+	# On macOS gcloud ships no Python of its own and would fall back to the
+	# deprecated system Python 3.9. Pin it to Homebrew's python@3.14 (the
+	# gcloud-cli cask dependency). The persistent export lives in the dotfiles
+	# (chezmoi dot_zshrc.tmpl); this covers the current setup session. Not
+	# needed on Linux, where the apt google-cloud-cli package uses system 3.10+.
+	if [ "$OS" = "Darwin" ] && [ -x "/opt/homebrew/bin/python3.14" ]; then
+		export CLOUDSDK_PYTHON="/opt/homebrew/bin/python3.14"
 	fi
 }
 
