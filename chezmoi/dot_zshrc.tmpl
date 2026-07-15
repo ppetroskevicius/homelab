@@ -42,3 +42,10 @@ export PATH="$HOME/.rd/bin:$PATH"
 # Deno
 export DENO_INSTALL="$HOME/.deno"
 export PATH="$DENO_INSTALL/bin:$PATH"
+
+# De-duplicate PATH keeping first occurrence. Runs last, after every prepend
+# above, so it collapses repeats (e.g. google-cloud-sdk/bin) that scalar
+# `export PATH=` assignments reintroduce. Complements the ordering fix in
+# .zprofile. zsh-only syntax.
+# shellcheck disable=SC3030,SC3044
+typeset -U path
