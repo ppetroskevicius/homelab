@@ -67,3 +67,7 @@ power_packages:
   - tlp
   - brightnessctl
   - wireguard
+
+# Where install_from_script.yml caches fetched install scripts. Per-user and
+# 0700 rather than /tmp, so the paths aren't world-writable or guessable.
+desktop_installer_cache_dir: "{{ ansible_facts.env.HOME }}/.cache/ansible-installers"

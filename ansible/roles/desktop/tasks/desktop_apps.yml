@@ -1,38 +1,59 @@
 ---
 # Install desktop applications (browsers, editors, communication tools)
 
-# Starship prompt (cross-platform)
-- name: Check if starship is installed
+# Vendors that ship an official install script are handled by one reusable
+# flow (install_from_script.yml) rather than a hand-rolled copy each. Linux
+# only — macOS gets all of these from Homebrew further down.
+- name: Ensure installer script cache exists (Linux)
+  ansible.builtin.file:
+    path: "{{ desktop_installer_cache_dir }}"
+    state: directory
+    mode: '0700'
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Install vendor-script applications (Linux)
+  ansible.builtin.include_tasks: install_from_script.yml
+  loop:
+    - name: starship
+      url: https://starship.rs/install.sh
+      creates: /usr/local/bin/starship
+      args: -y
+      become: true
+    - name: cursor
+      url: https://cursor.com/install
+      creates: /usr/bin/cursor
+      shell: true
+    - name: herdr
+      url: https://herdr.dev/install.sh
+      creates: "{{ ansible_facts.env.HOME }}/.local/bin/herdr"
+    # Adds the zotero-deb apt repo; the package itself is installed by apt below.
+    - name: zotero-repo
+      url: https://raw.githubusercontent.com/retorquere/zotero-deb/master/install.sh
+      creates: /etc/apt/sources.list.d/zotero.list
+      shell: true
+      become: true
+  loop_control:
+    loop_var: installer
+    label: "{{ installer.name }}"
+  when: ansible_facts['os_family'] == "Debian"
+
+# Starship prompt (macOS — Linux is covered by the loop above)
+- name: Check if starship is installed (macOS)
   ansible.builtin.command: which starship
   register: starship_check
   changed_when: false
   failed_when: false
-
-- name: Download Starship install script (Linux)
-  ansible.builtin.get_url:
-    url: https://starship.rs/install.sh
-    dest: /tmp/starship-install.sh
-    mode: '0755'
-  when:
-    - starship_check.rc != 0
-    - ansible_facts['os_family'] == "Debian"
-
-- name: Install Starship prompt (Linux)
-  ansible.builtin.command: /tmp/starship-install.sh -y
-  args:
-    creates: /usr/local/bin/starship
-  become: true
-  when:
-    - starship_check.rc != 0
-    - ansible_facts['os_family'] == "Debian"
+  when: ansible_facts['os_family'] == "Darwin"
 
 - name: Install Starship prompt (macOS)
   community.general.homebrew:
     name: starship
     state: present
+  # os_family first: starship_check is skipped (and .rc undefined) on Linux,
+  # and Ansible short-circuits the and-joined conditions in order.
   when:
-    - starship_check.rc != 0
     - ansible_facts['os_family'] == "Darwin"
+    - starship_check.rc != 0
 
 # 1Password GUI
 - name: Check if 1Password is installed (Linux)
@@ -122,34 +143,7 @@
     - ansible_facts['os_family'] == "Darwin"
     - not (arc_check.stat.exists | default(false))
 
-# Cursor IDE
-- name: Check if Cursor is installed (Linux)
-  ansible.builtin.command: which cursor
-  register: cursor_check
-  changed_when: false
-  failed_when: false
-  when: ansible_facts['os_family'] == "Debian"
-
-- name: Download Cursor install script (Linux)
-  ansible.builtin.get_url:
-    url: https://cursor.com/install
-    dest: /tmp/cursor-install.sh
-    mode: '0755'
-  when:
-    - ansible_facts['os_family'] == "Debian"
-    - cursor_check.rc != 0
-
-- name: Install Cursor via official install script (Linux)
-  ansible.builtin.command: /bin/bash /tmp/cursor-install.sh
-  args:
-    creates: /usr/bin/cursor
-  register: cursor_install
-  changed_when: cursor_install.rc == 0
-  failed_when: false
-  when:
-    - ansible_facts['os_family'] == "Debian"
-    - cursor_check.rc != 0
-
+# Cursor IDE (Linux is covered by the vendor-script loop above)
 - name: Install Cursor (macOS)
   community.general.homebrew_cask:
     name: cursor
@@ -206,48 +200,12 @@
 
 # herdr — terminal multiplexer for AI coding agents (Claude Code, Codex).
 # Desktop-only: tmux remains the multiplexer on bm-*/vm-* hosts.
+# Linux is covered by the vendor-script loop above.
 - name: Install herdr (macOS)
   community.general.homebrew:
     name: herdr
     state: present
   when: ansible_facts['os_family'] == "Darwin"
-
-# install.sh drops the binary in ~/.local/bin, which is only on PATH via
-# common.sh — not sourced by Ansible's non-login shell, so `which` would
-# always miss it and this block would never converge. Stat the path instead.
-- name: Check if herdr is installed (Linux)
-  ansible.builtin.stat:
-    path: "{{ ansible_facts.env.HOME }}/.local/bin/herdr"
-  register: herdr_check
-  when: ansible_facts['os_family'] == "Debian"
-
-- name: Download herdr install script (Linux)
-  ansible.builtin.get_url:
-    url: https://herdr.dev/install.sh
-    dest: /tmp/herdr-install.sh
-    mode: '0755'
-  when:
-    - ansible_facts['os_family'] == "Debian"
-    - not herdr_check.stat.exists
-
-- name: Install herdr (Linux)
-  ansible.builtin.command: /tmp/herdr-install.sh
-  args:
-    creates: "{{ ansible_facts.env.HOME }}/.local/bin/herdr"
-  register: herdr_install
-  # herdr.dev being unreachable shouldn't abort the rest of the desktop play.
-  failed_when: false
-  when:
-    - ansible_facts['os_family'] == "Debian"
-    - not herdr_check.stat.exists
-
-- name: Warn if herdr install failed (Linux)
-  ansible.builtin.debug:
-    msg: "herdr install failed (rc={{ herdr_install.rc }}): {{ herdr_install.stderr | default('') }}"
-  when:
-    - herdr_install is defined
-    - herdr_install.rc is defined
-    - herdr_install.rc != 0
 
 # Discord
 - name: Check if Discord is installed (Linux)
@@ -313,24 +271,7 @@
     - ansible_facts['os_family'] == "Darwin"
     - not (is_work_mac | default(false))
 
-# Zotero reference manager
-- name: Download Zotero repository install script (Linux)
-  ansible.builtin.get_url:
-    url: https://raw.githubusercontent.com/retorquere/zotero-deb/master/install.sh
-    dest: /tmp/zotero-deb-install.sh
-    mode: '0755'
-  when: ansible_facts['os_family'] == "Debian"
-
-- name: Add Zotero repository (Linux)
-  ansible.builtin.command: /bin/bash /tmp/zotero-deb-install.sh
-  args:
-    creates: /etc/apt/sources.list.d/zotero.list
-  become: true
-  register: zotero_repo_install
-  changed_when: zotero_repo_install.rc == 0
-  failed_when: false
-  when: ansible_facts['os_family'] == "Debian"
-
+# Zotero reference manager (apt repo added by the vendor-script loop above)
 - name: Install Zotero (Linux)
   ansible.builtin.apt:
     name: zotero
