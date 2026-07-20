@@ -1,0 +1,65 @@
+---
+# Reusable "fetch an official install script and run it" flow.
+#
+# Include it with an `installer` dict, either per-item from a loop or via
+# `vars:` for a single call:
+#
+#   - ansible.builtin.include_role:
+#       name: common
+#       tasks_from: install_from_script.yml
+#     loop: "{{ desktop_script_installers }}"
+#     loop_control:
+#       loop_var: installer
+#
+# Each item supplies:
+#   name    - identifies the task output and the cached script filename
+#   url     - install script to fetch
+#   creates - path that proves the install already happened; guards the cache
+#             dir, the download and the run, so a converged host does no work
+# Optional:
+#   become  - run the script as root (default false)
+#   args    - extra arguments appended to the invocation (default none)
+#
+# Scripts land in a 0700 per-user cache dir rather than /tmp: fixed
+# /tmp/<name>-install.sh paths were predictable names in a world-writable
+# sticky directory, where another local account holding the path would fail
+# the download outright.
+
+- name: "Check whether already installed: {{ installer.name }}"
+  ansible.builtin.stat:
+    path: "{{ installer.creates }}"
+  register: common_installer_check
+
+- name: "Ensure installer script cache exists: {{ installer.name }}"
+  ansible.builtin.file:
+    path: "{{ common_installer_cache_dir }}"
+    state: directory
+    mode: '0700'
+  when: not common_installer_check.stat.exists
+
+- name: "Download install script: {{ installer.name }}"
+  ansible.builtin.get_url:
+    url: "{{ installer.url }}"
+    dest: "{{ common_installer_cache_dir }}/{{ installer.name }}-install.sh"
+    mode: '0755'
+  when: not common_installer_check.stat.exists
+
+# Always via /bin/bash: the scripts are fetched 0755 so direct execution would
+# work too, but one form keeps the invocation a single readable line.
+- name: "Install {{ installer.name }}"
+  ansible.builtin.command: >-
+    /bin/bash {{ common_installer_cache_dir }}/{{ installer.name }}-install.sh
+    {{ installer.args | default('') }}
+  become: "{{ installer.become | default(false) }}"
+  register: common_installer_run
+  changed_when: common_installer_run.rc == 0
+  # An upstream host being unreachable shouldn't abort the rest of the play.
+  failed_when: false
+  when: not common_installer_check.stat.exists
+
+- name: "Warn on failed install: {{ installer.name }}"
+  ansible.builtin.debug:
+    msg: >-
+      {{ installer.name }} install failed (rc={{ common_installer_run.rc }}):
+      {{ common_installer_run.stderr | default('') }}
+  when: common_installer_run.rc | default(0) != 0

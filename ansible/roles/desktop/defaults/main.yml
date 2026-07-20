@@ -68,6 +68,18 @@ power_packages:
   - brightnessctl
   - wireguard
 
-# Where install_from_script.yml caches fetched install scripts. Per-user and
-# 0700 rather than /tmp, so the paths aren't world-writable or guessable.
-desktop_installer_cache_dir: "{{ ansible_facts.env.HOME }}/.cache/ansible-installers"
+# Vendors that ship an official install script, run through the shared
+# common/install_from_script.yml flow. Linux only — macOS gets all of these
+# from Homebrew (see desktop_apps.yml).
+desktop_script_installers:
+  - name: starship
+    url: https://starship.rs/install.sh
+    creates: /usr/local/bin/starship
+    args: -y
+    become: true
+  - name: cursor
+    url: https://cursor.com/install
+    creates: /usr/bin/cursor
+  - name: herdr
+    url: https://herdr.dev/install.sh
+    creates: "{{ ansible_facts.env.HOME }}/.local/bin/herdr"
