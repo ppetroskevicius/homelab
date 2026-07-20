@@ -2,3 +2,7 @@
 # Keep normal configuration runs predictable. Enable explicitly for maintenance:
 # ansible-playbook site.yml -e common_upgrade_packages=true
 common_upgrade_packages: false
+
+# Where install_from_script.yml caches fetched install scripts. Per-user and
+# 0700 rather than /tmp, so the paths aren't world-writable or guessable.
+common_installer_cache_dir: "{{ ansible_facts.env.HOME }}/.cache/ansible-installers"
