@@ -204,6 +204,38 @@
     state: present
   when: ansible_facts['os_family'] == "Darwin"
 
+# herdr — terminal multiplexer for AI coding agents (Claude Code, Codex).
+# Desktop-only: tmux remains the multiplexer on bm-*/vm-* hosts.
+- name: Install herdr (macOS)
+  community.general.homebrew:
+    name: herdr
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+- name: Check if herdr is installed (Linux)
+  ansible.builtin.command: which herdr
+  register: herdr_check
+  changed_when: false
+  failed_when: false
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Download herdr install script (Linux)
+  ansible.builtin.get_url:
+    url: https://herdr.dev/install.sh
+    dest: /tmp/herdr-install.sh
+    mode: '0755'
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - herdr_check.rc != 0
+
+- name: Install herdr (Linux)
+  ansible.builtin.command: /tmp/herdr-install.sh
+  args:
+    creates: "{{ ansible_facts.env.HOME }}/.local/bin/herdr"
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - herdr_check.rc != 0
+
 # Discord
 - name: Check if Discord is installed (Linux)
   ansible.builtin.command: which discord
