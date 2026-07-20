@@ -77,6 +77,23 @@
     - not zsh_autosuggestions_stat.stat.exists
   become: false
 
+- name: Check if zsh-syntax-highlighting is installed
+  ansible.builtin.stat:
+    path: "{{ user_home }}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
+  register: zsh_syntax_highlighting_stat
+  become: false
+  when: is_desktop
+
+- name: Install zsh-syntax-highlighting plugin
+  ansible.builtin.git: # noqa: latest[git]
+    repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
+    dest: "{{ user_home }}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
+    depth: 1
+  when:
+    - is_desktop
+    - not zsh_syntax_highlighting_stat.stat.exists
+  become: false
+
 - name: Change default shell to zsh (desktops only)
   ansible.builtin.user:
     name: "{{ target_user }}"
