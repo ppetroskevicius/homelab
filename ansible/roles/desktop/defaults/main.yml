@@ -67,3 +67,19 @@ power_packages:
   - tlp
   - brightnessctl
   - wireguard
+
+# Vendors that ship an official install script, run through the shared
+# common/install_from_script.yml flow. Linux only — macOS gets all of these
+# from Homebrew (see desktop_apps.yml).
+desktop_script_installers:
+  - name: starship
+    url: https://starship.rs/install.sh
+    creates: /usr/local/bin/starship
+    args: -y
+    become: true
+  - name: cursor
+    url: https://cursor.com/install
+    creates: /usr/bin/cursor
+  - name: herdr
+    url: https://herdr.dev/install.sh
+    creates: "{{ ansible_facts.env.HOME }}/.local/bin/herdr"

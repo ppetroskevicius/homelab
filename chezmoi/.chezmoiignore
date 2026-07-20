@@ -22,6 +22,9 @@
 .config/Cursor/
 .config/ruff/
 
+# herdr agent multiplexer (desktop-only; servers use tmux)
+.config/herdr/
+
 # Cloud CLI configs (desktop-only)
 .aws/
 .config/rclone/

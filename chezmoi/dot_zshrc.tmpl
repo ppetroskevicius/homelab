@@ -4,7 +4,14 @@
 export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME="robbyrussell"
 setopt histignorealldups
-plugins=(git zsh-autosuggestions terraform gcloud docker kubectl)
+# zsh-syntax-highlighting must be LAST in this list: it wraps the ZLE widgets,
+# so any plugin loaded after it goes unhighlighted.
+plugins=(git zsh-autosuggestions terraform gcloud docker kubectl zsh-syntax-highlighting)
+# It re-tokenizes the whole buffer on every keystroke, so cost grows with line
+# length (~10ms/keystroke at 4KB — visible lag when editing a pasted command).
+# Past this many chars it stops highlighting instead; short commands are the
+# 99% case and are unaffected.
+ZSH_HIGHLIGHT_MAXLENGTH=512
 source $ZSH/oh-my-zsh.sh
 
 # Starship prompt (desktop only, installed via dotfiles)

@@ -11,6 +11,11 @@ export COMMON_SH_LOADED=1
 export EDITOR='vim'
 export CLICOLOR=1
 
+# Claude Code — personal account. Uses a separate config dir so it can run
+# alongside the default (work/enterprise) login without clobbering credentials.
+# Fall back to your personal subscription when the work tokens run out.
+alias claude-personal='CLAUDE_CONFIG_DIR="$HOME/.claude-personal" claude'
+
 # Idempotent PATH addition - prevents duplicates
 add_to_path() {
   case ":$PATH:" in
