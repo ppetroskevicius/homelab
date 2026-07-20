@@ -10,6 +10,14 @@ onboarding = false
 default_shell = "zsh"
 new_cwd = "follow"
 
+[update]
+# Homebrew owns the binary here (installed by the Ansible desktop role), so
+# herdr's own version nag is redundant — brew upgrade lands it anyway.
+version_check = false
+# Left on: refreshes the agent-detection manifest (how herdr reads Claude Code's
+# working/blocked/done states), which updates independently of the binary.
+manifest_check = true
+
 [keys]
 # tmux here rebinds its prefix to backtick (see ~/.tmux.conf), so herdr keeps
 # the stock ctrl+b — the two never collide, including when nested.
