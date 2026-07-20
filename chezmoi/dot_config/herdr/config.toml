@@ -1,0 +1,16 @@
+# herdr — agent multiplexer for AI coding agents (https://herdr.dev)
+# Dump the full default config with: herdr --default-config
+#
+# Desktop-only. bm-* / vm-* hosts keep tmux as their multiplexer (~/.tmux.conf),
+# deployed by the Ansible dotfiles role.
+
+onboarding = false
+
+[terminal]
+default_shell = "zsh"
+new_cwd = "follow"
+
+[keys]
+# tmux here rebinds its prefix to backtick (see ~/.tmux.conf), so herdr keeps
+# the stock ctrl+b — the two never collide, including when nested.
+prefix = "ctrl+b"
