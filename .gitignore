@@ -17,6 +17,10 @@ id_ecdsa
 # SSH agent sockets
 ssh-agent.*
 
+# Tool caches
+# ansible-lint stages mocked collections here on every run
+.ansible/
+
 # OS files
 .DS_Store
 Thumbs.db
