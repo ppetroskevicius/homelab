@@ -60,38 +60,29 @@
     - not ohmyzsh_stat.stat.exists
   become: false
 
-- name: Check if zsh-autosuggestions is installed
+# All custom plugins come from github.com/zsh-users, so the list in
+# defaults/main.yml carries the bare names. The stat guard is what keeps a
+# converged host off the network: the git module has no pinned version (see
+# the noqa below), so an unguarded run would fetch every time.
+- name: Check which oh-my-zsh custom plugins are installed
   ansible.builtin.stat:
-    path: "{{ user_home }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
-  register: zsh_autosuggestions_stat
+    path: "{{ user_home }}/.oh-my-zsh/custom/plugins/{{ item }}"
+  register: zsh_plugin_stats
+  loop: "{{ zsh_custom_plugins }}"
   become: false
   when: is_desktop
 
-- name: Install zsh-autosuggestions plugin
+- name: Install missing oh-my-zsh custom plugins
   ansible.builtin.git: # noqa: latest[git]
-    repo: https://github.com/zsh-users/zsh-autosuggestions.git
-    dest: "{{ user_home }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
+    repo: "https://github.com/zsh-users/{{ item.item }}.git"
+    dest: "{{ user_home }}/.oh-my-zsh/custom/plugins/{{ item.item }}"
     depth: 1
+  loop: "{{ zsh_plugin_stats.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item }}"
   when:
     - is_desktop
-    - not zsh_autosuggestions_stat.stat.exists
-  become: false
-
-- name: Check if zsh-syntax-highlighting is installed
-  ansible.builtin.stat:
-    path: "{{ user_home }}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
-  register: zsh_syntax_highlighting_stat
-  become: false
-  when: is_desktop
-
-- name: Install zsh-syntax-highlighting plugin
-  ansible.builtin.git: # noqa: latest[git]
-    repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
-    dest: "{{ user_home }}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
-    depth: 1
-  when:
-    - is_desktop
-    - not zsh_syntax_highlighting_stat.stat.exists
+    - not item.stat.exists
   become: false
 
 - name: Change default shell to zsh (desktops only)

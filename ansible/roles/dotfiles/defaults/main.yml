@@ -1,3 +1,9 @@
 ---
 dotfiles_git_name: ppetroskevicius
 dotfiles_git_email: p.petroskevicius@gmail.com
+
+# oh-my-zsh custom plugins, all from github.com/zsh-users. Keep in sync with
+# the plugins=(...) line in chezmoi/dot_zshrc.tmpl, which controls load order.
+zsh_custom_plugins:
+  - zsh-autosuggestions
+  - zsh-syntax-highlighting
