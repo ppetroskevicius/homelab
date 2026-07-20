@@ -11,9 +11,16 @@ default_shell = "zsh"
 new_cwd = "follow"
 
 [update]
+{{- if eq .chezmoi.os "darwin" }}
 # Homebrew owns the binary here (installed by the Ansible desktop role), so
 # herdr's own version nag is redundant — brew upgrade lands it anyway.
 version_check = false
+{{- else }}
+# Linux desktops install via herdr.dev/install.sh into ~/.local/bin, guarded by
+# `creates:` so Ansible never re-runs it. Nothing else upgrades the binary here,
+# so herdr's own version notice is the only drift signal — leave it on.
+version_check = true
+{{- end }}
 # Left on: refreshes the agent-detection manifest (how herdr reads Claude Code's
 # working/blocked/done states), which updates independently of the binary.
 manifest_check = true

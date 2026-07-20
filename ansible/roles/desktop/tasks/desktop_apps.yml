@@ -212,11 +212,13 @@
     state: present
   when: ansible_facts['os_family'] == "Darwin"
 
+# install.sh drops the binary in ~/.local/bin, which is only on PATH via
+# common.sh — not sourced by Ansible's non-login shell, so `which` would
+# always miss it and this block would never converge. Stat the path instead.
 - name: Check if herdr is installed (Linux)
-  ansible.builtin.command: which herdr
+  ansible.builtin.stat:
+    path: "{{ ansible_facts.env.HOME }}/.local/bin/herdr"
   register: herdr_check
-  changed_when: false
-  failed_when: false
   when: ansible_facts['os_family'] == "Debian"
 
 - name: Download herdr install script (Linux)
@@ -226,15 +228,26 @@
     mode: '0755'
   when:
     - ansible_facts['os_family'] == "Debian"
-    - herdr_check.rc != 0
+    - not herdr_check.stat.exists
 
 - name: Install herdr (Linux)
   ansible.builtin.command: /tmp/herdr-install.sh
   args:
     creates: "{{ ansible_facts.env.HOME }}/.local/bin/herdr"
+  register: herdr_install
+  # herdr.dev being unreachable shouldn't abort the rest of the desktop play.
+  failed_when: false
   when:
     - ansible_facts['os_family'] == "Debian"
-    - herdr_check.rc != 0
+    - not herdr_check.stat.exists
+
+- name: Warn if herdr install failed (Linux)
+  ansible.builtin.debug:
+    msg: "herdr install failed (rc={{ herdr_install.rc }}): {{ herdr_install.stderr | default('') }}"
+  when:
+    - herdr_install is defined
+    - herdr_install.rc is defined
+    - herdr_install.rc != 0
 
 # Discord
 - name: Check if Discord is installed (Linux)
