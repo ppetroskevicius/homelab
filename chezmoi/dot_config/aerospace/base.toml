@@ -17,7 +17,7 @@ after-startup-command = ['exec-and-forget borders']
 # them explicitly keeps behavior identical under v2 (regression prevention).
 persistent-workspaces = [
     "1", "2", "3", "4", "5", "6", "7", "8", "9",
-    "G", "M", "N", "A", "S", "T", "E", "W", "O", "D", "I", "P",
+    "G", "M", "N", "A", "S", "T", "E", "W", "O", "D", "I", "P", "R",
 ]
 
 # Normalizations
@@ -124,6 +124,7 @@ alt-o = "workspace O"
 alt-d = "workspace D"
 alt-i = "workspace I"
 alt-p = "workspace P"
+alt-r = "workspace R"
 
 # Move window to letter workspace
 alt-shift-g = "move-node-to-workspace G"
@@ -138,12 +139,13 @@ alt-shift-o = "move-node-to-workspace O"
 alt-shift-d = "move-node-to-workspace D"
 alt-shift-i = "move-node-to-workspace I"
 alt-shift-p = "move-node-to-workspace P"
+alt-shift-r = "move-node-to-workspace R"
 
 # Reload config (Sway: Mod+Shift+c)
 alt-shift-c = "reload-config"
 
-# Enter resize mode (Sway: Mod+r)
-alt-r = "mode resize"
+# Enter resize mode (alt-r relocated here; alt-r now switches to workspace R)
+alt-x = "mode resize"
 
 # -----------------------------------------------------------
 # Resize mode (Sway: mode "resize")
@@ -249,3 +251,8 @@ run = "layout floating"
 [[on-window-detected]]
 if.app-id = "com.apple.Notes"
 run = "layout floating"
+
+# Rancher Desktop -> R
+[[on-window-detected]]
+if.app-id = "io.rancherdesktop.app"
+run = "move-node-to-workspace R"

@@ -64,7 +64,7 @@ Modifier: **Alt (Option)**
 
 | Shortcut | Action |
 |----------|--------|
-| `alt-r` | **Enter resize mode** |
+| `alt-x` | **Enter resize mode** |
 | `h` | Shrink width |
 | `l` | Grow width |
 | `k` | Shrink height |
@@ -97,6 +97,7 @@ Apps are automatically moved to their assigned workspace on open:
 | VS Code / Cursor | 4 | `com.todesktop.230313mzl4w4u92` |
 | Alacritty | 5 | app-name regex `alacritty` |
 | Google Chrome | 5 | `com.google.Chrome` |
+| Rancher Desktop | R | `io.rancherdesktop.app` |
 
 ## Floating Apps
 

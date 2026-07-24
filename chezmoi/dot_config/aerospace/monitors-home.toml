@@ -18,6 +18,7 @@ O = ['lg', 'secondary']
 D = ['lg', 'secondary']
 I = ['lg', 'secondary']
 P = ['lg', 'secondary']
+R = ['lg', 'secondary']
 # Dell center: scratch + slack
 7 = 'dell'
 8 = 'dell'

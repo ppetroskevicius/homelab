@@ -25,6 +25,7 @@ O = ['\(1\)$', 'DELL U2719DC']
 D = ['\(1\)$', 'DELL U2719DC']
 I = ['\(1\)$', 'DELL U2719DC']
 P = ['\(1\)$', 'DELL U2719DC']
+R = ['\(1\)$', 'DELL U2719DC']
 # Dell (2): scratch + slack
 7 = ['\(2\)$', 'DELL U2721DE']
 8 = ['\(2\)$', 'DELL U2721DE']

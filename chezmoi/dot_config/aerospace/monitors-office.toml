@@ -22,5 +22,6 @@ O = 'secondary'
 D = 'secondary'
 I = 'secondary'
 P = 'secondary'
+R = 'secondary'
 # Built-in: Spotify (privacy filter screen)
 M = 'built-in'
