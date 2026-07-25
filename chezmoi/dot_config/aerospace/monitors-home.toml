@@ -4,7 +4,7 @@
 1 = 'built-in'
 2 = 'built-in'
 3 = 'built-in'
-# LG right: scratch + all app workspaces
+# LG right: scratch + remaining app workspaces
 4 = ['lg', 'secondary']
 5 = ['lg', 'secondary']
 6 = ['lg', 'secondary']
@@ -12,17 +12,17 @@ G = ['lg', 'secondary']
 N = ['lg', 'secondary']
 A = ['lg', 'secondary']
 T = ['lg', 'secondary']
-E = ['lg', 'secondary']
 W = ['lg', 'secondary']
 O = ['lg', 'secondary']
 D = ['lg', 'secondary']
 I = ['lg', 'secondary']
 P = ['lg', 'secondary']
 R = ['lg', 'secondary']
-# Dell center: scratch + slack
+# Dell center (vertical): scratch + editor + slack
 7 = 'dell'
 8 = 'dell'
 9 = 'dell'
+E = 'dell'
 S = 'dell'
 # Built-in: Spotify (privacy filter screen)
 M = 'built-in'

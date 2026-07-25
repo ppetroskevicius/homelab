@@ -91,12 +91,18 @@ Apps are automatically moved to their assigned workspace on open:
 
 | App | Workspace | Rule |
 |-----|-----------|------|
-| Slack | 1 | `com.tinyspeck.slackmacgap` |
-| Notion | 2 | `notion.id` |
-| Claude Desktop | 3 | `com.anthropic.claudefordesktop` |
-| VS Code / Cursor | 4 | `com.todesktop.230313mzl4w4u92` |
-| Alacritty | 5 | app-name regex `alacritty` |
-| Google Chrome | 5 | `com.google.Chrome` |
+| Slack | S | `com.tinyspeck.slackmacgap` |
+| Notion | N | `notion.id` |
+| Claude Desktop | A | `com.anthropic.claudefordesktop` |
+| VS Code | E | `com.microsoft.VSCode` |
+| Cursor | E | `com.todesktop.230313mzl4w4u92` |
+| Alacritty | T | app-name regex `alacritty` (also forced tiling) |
+| Google Chrome | G | `com.google.Chrome` |
+| Obsidian | O | `md.obsidian` |
+| DataGrip | D | `com.jetbrains.datagrip` |
+| IntelliJ | I | `com.jetbrains.intellij` |
+| Spotify | M | `com.spotify.client` |
+| Figma | P | `com.figma.Desktop` |
 | Rancher Desktop | R | `io.rancherdesktop.app` |
 
 ## Floating Apps
@@ -151,9 +157,9 @@ The script concatenates `base.toml` + the selected monitor file into `~/.aerospa
 
 | Monitor | Workspaces | Purpose |
 |---------|------------|---------|
-| Mac (left) | 1, 2, 3 | Comms (Slack, Notion, Claude) |
-| Dell (center) | 4, 5, 6 | Main coding/work |
-| LG (right) | 7, 8, 9 | Browser, docs, reference |
+| Mac (left) | 1, 2, 3, M | Scratch + Spotify (privacy filter screen) |
+| Dell (center, vertical) | 7, 8, 9, E, S | Scratch + editor (VS Code/Cursor) + Slack |
+| LG (right) | 4, 5, 6, G, N, A, T, W, O, D, I, P, R | Scratch + remaining app workspaces |
 
 #### Office — Mac (left) + Dell 36" (right)
 
