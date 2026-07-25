@@ -206,8 +206,8 @@ as ordered fallbacks so the profile still works at the other desk.
 | Monitor | Workspaces | Purpose |
 |---------|------------|---------|
 | Mac (built-in) | 1, 2, 3, M | Scratch + Spotify |
-| Dell (1) | 4, 5, 6, G, N, A, T, E, W, O, D, I, P, R | Main app workspaces |
-| Dell (2) | 7, 8, 9, S | Scratch + Slack |
+| Dell (1) | 4, 5, 6, G, N, A, T, W, O, D, I, P, R | Remaining app workspaces |
+| Dell (2) | 7, 8, 9, E, S | Scratch + editor (VS Code/Cursor) + Slack |
 
 #### Villa — Mac (left) + LG 43" horizontal (right)
 
