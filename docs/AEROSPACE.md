@@ -147,7 +147,7 @@ Apps are automatically moved to their assigned workspace on open:
 ## Monitor Profiles
 
 AeroSpace doesn't support conditional config or per-location profiles natively.
-A profile system is set up using `aerospace-profile` to swap between 4 location configs.
+A profile system is set up using `aerospace-profile` to swap between 5 location configs.
 
 ### File Structure
 
@@ -155,7 +155,8 @@ A profile system is set up using `aerospace-profile` to swap between 4 location 
 ~/.config/aerospace/
 ├── base.toml              # Shared config (keybindings, gaps, window rules)
 ├── monitors-home.toml     # Home monitor assignments
-├── monitors-office.toml   # Office monitor assignments
+├── monitors-office.toml   # Office monitor assignments (single external)
+├── monitors-office2.toml  # Office monitor assignments (two Dell U27")
 ├── monitors-villa.toml    # Villa monitor assignments
 └── monitors-cafe.toml     # Cafe (laptop only, no assignments)
 
@@ -170,7 +171,8 @@ A profile system is set up using `aerospace-profile` to swap between 4 location 
 
 ```bash
 aerospace-profile home     # Switch to home layout
-aerospace-profile office   # Switch to office layout
+aerospace-profile office   # Switch to office layout (single external display)
+aerospace-profile office2  # Switch to office layout (two Dell U27" displays)
 aerospace-profile villa    # Switch to villa layout
 aerospace-profile cafe     # Switch to cafe layout
 aerospace-profile          # Show available profiles and current selection
@@ -192,15 +194,27 @@ The script concatenates `base.toml` + the selected monitor file into `~/.aerospa
 
 | Monitor | Workspaces | Purpose |
 |---------|------------|---------|
-| Mac (left) | 1, 2, 3 | Comms, secondary |
-| Dell (right) | 4, 5, 6, 7, 8, 9 | Main work |
+| Mac (left) | 1, 2, 3, M | Scratch + Spotify |
+| Dell (right) | 4-9, G, N, A, S, T, E, W, O, D, I, P, R | Everything else |
+
+#### Office2 — Mac (built-in) + two identical Dell U27" displays
+
+The two Dells are the same model, so they're told apart by the macOS `(1)`/`(2)`
+name suffix, with the old-desk model names (`DELL U2719DC`, `DELL U2721DE`) kept
+as ordered fallbacks so the profile still works at the other desk.
+
+| Monitor | Workspaces | Purpose |
+|---------|------------|---------|
+| Mac (built-in) | 1, 2, 3, M | Scratch + Spotify |
+| Dell (1) | 4, 5, 6, G, N, A, T, E, W, O, D, I, P, R | Main app workspaces |
+| Dell (2) | 7, 8, 9, S | Scratch + Slack |
 
 #### Villa — Mac (left) + LG 43" horizontal (right)
 
 | Monitor | Workspaces | Purpose |
 |---------|------------|---------|
-| Mac (left) | 1, 2, 3 | Comms, secondary |
-| LG (right) | 4, 5, 6, 7, 8, 9 | Main work |
+| Mac (left) | 1, 2, 3, M | Scratch + Spotify |
+| LG (right) | 4-9, G, N, A, S, T, E, W, O, D, I, P, R | Everything else |
 
 #### Cafe — Mac only
 
