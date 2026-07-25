@@ -31,14 +31,39 @@ Modifier: **Alt (Option)**
 | `alt-v` | Join with down (group vertically) |
 | `alt-/` | **Cycle tiles layout** |
 | `alt-,` | Cycle accordion layout |
+| `alt-shift-q` | Close window |
+| `alt-shift--` / `alt-shift-=` | Quick resize smaller / larger |
 
 ## Workspaces
 
 | Shortcut | Action |
 |----------|--------|
-| `alt-1` to `alt-9` | Switch to workspace 1-9 (focuses assigned monitor) |
+| `alt-1` to `alt-9` | Switch to numeric workspace 1-9 (scratch space) |
 | `alt-shift-1` to `alt-shift-9` | Move window to workspace 1-9 |
+| `alt-<letter>` | Switch to letter workspace (focuses assigned monitor) |
+| `alt-shift-<letter>` | Move window to letter workspace |
 | `alt-tab` | Workspace back-and-forth |
+
+### Letter Workspaces
+
+Each letter is an app initial. Apps auto-assign here on open (see Auto-Assign Rules),
+so `alt-s` jumps to Slack, `alt-e` to the editor, and so on.
+
+| Key | Workspace | Home for |
+|-----|-----------|----------|
+| `alt-a` | A | Claude Desktop (Anthropic) |
+| `alt-d` | D | DataGrip |
+| `alt-e` | E | VS Code / Cursor (editor) |
+| `alt-g` | G | Google Chrome |
+| `alt-i` | I | IntelliJ |
+| `alt-m` | M | Spotify (music) |
+| `alt-n` | N | Notion |
+| `alt-o` | O | Obsidian |
+| `alt-p` | P | Figma |
+| `alt-r` | R | Rancher Desktop |
+| `alt-s` | S | Slack |
+| `alt-t` | T | Alacritty (terminal) |
+| `alt-w` | W | *(unassigned — free workspace)* |
 
 ## Multi-Monitor
 
@@ -50,15 +75,17 @@ Modifier: **Alt (Option)**
 
 ## App Launchers
 
+Only two bindings actually launch an app:
+
 | Shortcut | Action |
 |----------|--------|
-| `alt-enter` | Open Alacritty |
-| `alt-g` | Open Google Chrome |
-| `alt-c` | Open VS Code |
-| `alt-s` | Open Slack |
-| `alt-a` | Open Claude Desktop |
-| `alt-n` | Open Notion |
-| `alt-shift-q` | Close window |
+| `alt-enter` | Launch Alacritty (lands on workspace T) |
+| `alt-c` | Launch VS Code (lands on workspace E) |
+
+> Other app keys (`alt-s`, `alt-a`, `alt-n`, `alt-g`, …) **switch to that app's
+> workspace** — they do not launch anything. Start the app once and the
+> auto-assign rules park it there; after that the letter key is how you reach it.
+> See [Letter Workspaces](#letter-workspaces).
 
 ## Resize Mode
 
