@@ -111,6 +111,19 @@
   // ────────── Markdown tooling ──────────
   "markdown.marp.enableHtml": true,
 
+  // Mermaid diagrams in VS Code 1.121+'s built-in markdown preview.
+  // Interaction: Option+drag pans, Option+scroll zooms, drag the diagram's bottom edge
+  // to resize. Set "always" below if you want that without holding alt — the
+  // trade-off is that plain scroll over a diagram then zooms instead of scrolling
+  // the page.
+  "markdown-mermaid.mouseNavigation.enabled": "alt",
+  "markdown-mermaid.controls.show": "always",
+  "markdown-mermaid.resizable": true,
+  // Keep large diagrams within the viewport; use pan and zoom to inspect them.
+  "markdown-mermaid.maxHeight": "80vh",
+  "markdown-mermaid.lightModeTheme": "vscode",
+  "markdown-mermaid.darkModeTheme": "vscode",
+
   // ────────── Search highlight ──────────
   "workbench.colorCustomizations": {
     "editor.findMatchBackground": "#ff8c00cc",

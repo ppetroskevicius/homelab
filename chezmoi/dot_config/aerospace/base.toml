@@ -187,11 +187,6 @@ run = "move-node-to-workspace A"
 if.app-id = "com.microsoft.VSCode"
 run = "move-node-to-workspace E"
 
-# Cursor (ToDesktop bundle) -> E (editor)
-[[on-window-detected]]
-if.app-id = "com.todesktop.230313mzl4w4u92"
-run = "move-node-to-workspace E"
-
 # Google Chrome -> G (first window goes to Calendar workspace)
 [[on-window-detected]]
 if.app-id = "com.google.Chrome"

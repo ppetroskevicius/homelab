@@ -77,9 +77,6 @@ desktop_script_installers:
     creates: /usr/local/bin/starship
     args: -y
     become: true
-  - name: cursor
-    url: https://cursor.com/install
-    creates: /usr/bin/cursor
   - name: herdr
     url: https://herdr.dev/install.sh
     creates: "{{ ansible_facts.env.HOME }}/.local/bin/herdr"

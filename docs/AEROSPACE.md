@@ -53,7 +53,7 @@ so `alt-s` jumps to Slack, `alt-e` to the editor, and so on.
 |-----|-----------|----------|
 | `alt-a` | A | Claude Desktop (Anthropic) |
 | `alt-d` | D | DataGrip |
-| `alt-e` | E | VS Code / Cursor (editor) |
+| `alt-e` | E | VS Code (editor) |
 | `alt-g` | G | Google Chrome |
 | `alt-i` | I | IntelliJ |
 | `alt-m` | M | Spotify (music) |
@@ -122,7 +122,6 @@ Apps are automatically moved to their assigned workspace on open:
 | Notion | N | `notion.id` |
 | Claude Desktop | A | `com.anthropic.claudefordesktop` |
 | VS Code | E | `com.microsoft.VSCode` |
-| Cursor | E | `com.todesktop.230313mzl4w4u92` |
 | Alacritty | T | app-name regex `alacritty` (also forced tiling) |
 | Google Chrome | G | `com.google.Chrome` |
 | Obsidian | O | `md.obsidian` |
@@ -187,7 +186,7 @@ The script concatenates `base.toml` + the selected monitor file into `~/.aerospa
 | Monitor | Workspaces | Purpose |
 |---------|------------|---------|
 | Mac (left) | 1, 2, 3, M | Scratch + Spotify (privacy filter screen) |
-| Dell (center, vertical) | 7, 8, 9, E, S | Scratch + editor (VS Code/Cursor) + Slack |
+| Dell (center, vertical) | 7, 8, 9, E, S | Scratch + editor (VS Code) + Slack |
 | LG (right) | 4, 5, 6, G, N, A, T, W, O, D, I, P, R | Scratch + remaining app workspaces |
 
 #### Office — Mac (left) + Dell 36" (right)
@@ -207,7 +206,7 @@ as ordered fallbacks so the profile still works at the other desk.
 |---------|------------|---------|
 | Mac (built-in) | 1, 2, 3, M | Scratch + Spotify |
 | Dell (1) | 4, 5, 6, G, N, A, T, W, O, D, I, P, R | Remaining app workspaces |
-| Dell (2) | 7, 8, 9, E, S | Scratch + editor (VS Code/Cursor) + Slack |
+| Dell (2) | 7, 8, 9, E, S | Scratch + editor (VS Code) + Slack |
 
 #### Villa — Mac (left) + LG 43" horizontal (right)
 

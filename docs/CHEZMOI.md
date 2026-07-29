@@ -164,7 +164,6 @@ The `.chezmoiignore` file prevents desktop-only files from being applied on non-
 .config/wireplumber/
 
 # Desktop-specific
-.config/Cursor/
 .config/systemd/
 .config/chezmoi/
 ...

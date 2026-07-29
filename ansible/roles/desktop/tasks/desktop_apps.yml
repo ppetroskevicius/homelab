@@ -110,13 +110,6 @@
     - ansible_facts['os_family'] == "Darwin"
     - not (arc_check.stat.exists | default(false))
 
-# Cursor IDE (Linux is covered by the vendor-script loop above)
-- name: Install Cursor (macOS)
-  community.general.homebrew_cask:
-    name: cursor
-    state: present
-  when: ansible_facts['os_family'] == "Darwin"
-
 - name: Install VS Code (macOS)
   community.general.homebrew_cask:
     name: visual-studio-code

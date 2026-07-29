@@ -54,7 +54,6 @@ This document maps all packages, tools, and configurations to the 5 machine type
 | i3status-rust config | ✗             | ✗           | ✗                | ✗          | ✓      | Status bar config                     |
 | Ruff config          | ✗             | ✗           | ✗                | ✗          | ✓      | Python linter config                  |
 | Zed config           | ✗             | ✗           | ✗                | ✗          | ✓      | Editor config                         |
-| Cursor config        | ✗             | ✗           | ✗                | ✗          | ✓      | Editor config                         |
 | AWS config           | ✗             | ✗           | ✗                | ✗          | ✓      | AWS configuration                     |
 | GCP configs          | ✗             | ✗           | ✗                | ✗          | ✓      | GCP configurations                    |
 
@@ -245,7 +244,6 @@ This document maps all packages, tools, and configurations to the 5 machine type
 | Alacritty        | ✗             | ✗           | ✗                | ✗          | ✓      | Terminal emulator    |
 | 1Password (app)  | ✗             | ✗           | ✗                | ✗          | ✓      | Password manager GUI |
 | Zed              | ✗             | ✗           | ✗                | ✗          | ✓      | Code editor          |
-| Cursor           | ✗             | ✗           | ✗                | ✗          | ✓      | AI code editor       |
 | Claude Code      | ✗             | ✗           | ✗                | ✗          | ✓      | AI code assistant    |
 | Chrome           | ✗             | ✗           | ✗                | ✗          | ✓      | Web browser          |
 | Firefox          | ✗             | ✗           | ✗                | ✗          | ✓      | Web browser          |

@@ -2,14 +2,19 @@
 {{- if and (eq .chezmoi.os "darwin") (eq .machine_type "desktop") }}
 set -euo pipefail
 
-# Install an extension into both VS Code and Cursor if the CLI is available.
+failures=()
+
+# Install an extension into VS Code if the CLI is available.
+# Failures are collected rather than aborting, but they are reported at the end —
+# silently swallowing them let github.copilot sit in this list unnoticed while
+# never actually being installed.
 install_ext() {
     local ext="$1"
-    for cli in code cursor; do
-        if command -v "$cli" >/dev/null 2>&1; then
-            "$cli" --install-extension "$ext" --force 2>/dev/null || true
+    if command -v code >/dev/null 2>&1; then
+        if ! code --install-extension "$ext" --force >/dev/null 2>&1; then
+            failures+=("code: $ext")
         fi
-    done
+    fi
 }
 
 extensions=(
@@ -50,8 +55,6 @@ extensions=(
     "marp-team.marp-vscode"
     "tomoki1207.pdf"
     # AI assistants
-    "github.copilot"
-    "github.copilot-chat"
     "saoudrizwan.claude-dev"
     # Code quality
     "editorconfig.editorconfig"
@@ -67,6 +70,11 @@ extensions=(
 for ext in "${extensions[@]}"; do
     install_ext "$ext"
 done
+
+if [ ${#failures[@]} -gt 0 ]; then
+    echo "WARNING: ${#failures[@]} extension install(s) failed:" >&2
+    printf '  %s\n' "${failures[@]}" >&2
+fi
 {{- else }}
 echo "Skipping VS Code extension installation (macOS desktop only)"
 {{- end }}

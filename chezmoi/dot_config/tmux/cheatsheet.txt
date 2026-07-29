@@ -119,7 +119,7 @@
    Alt + A         Claude Desktop (Anthropic)
    Alt + S         Slack
    Alt + T         Terminal (Alacritty, Tiles)
-   Alt + E         VS Code / Cursor (Editor)
+   Alt + E         VS Code (Editor)
    Alt + W         (free)
    Alt + O         Obsidian
    Alt + D         DataGrip
