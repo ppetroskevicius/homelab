@@ -16,6 +16,11 @@ export CLICOLOR=1
 # Fall back to your personal subscription when the work tokens run out.
 alias claude-personal='CLAUDE_CONFIG_DIR="$HOME/.claude-personal" claude'
 
+# Codex CLI — personal account. Same idea via CODEX_HOME. `sessions/` is
+# symlinked back to ~/.codex, so a session started on the work login can be
+# resumed here after a spend cap: `codex-personal resume <session-id>`.
+alias codex-personal='CODEX_HOME="$HOME/.codex-personal" codex'
+
 # Idempotent PATH addition - prevents duplicates
 add_to_path() {
   case ":$PATH:" in
