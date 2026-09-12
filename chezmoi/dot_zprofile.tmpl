@@ -21,11 +21,20 @@ export HISTSIZE=50000
 export SAVEHIST=10000
 {{- if eq .chezmoi.os "darwin" }}
 
-# Put user bin dirs ahead of macOS system paths. /etc/zprofile runs
-# path_helper *before* this file, shuffling /usr/bin in front of ~/.local/bin
-# (added by common.sh in .zshenv). Without this, the uv python3 shim in
-# ~/.local/bin is shadowed by the deprecated system Python 3.9. Re-assert
-# here (after path_helper) and de-duplicate. zsh-only syntax.
+# Put user bin dirs and Homebrew ahead of macOS system paths. /etc/zprofile
+# runs path_helper *before* this file, hoisting /usr/bin and /bin in front of
+# everything .zshenv set up (common.sh adds ~/.local/bin, ~/bin, and the
+# `brew shellenv` dirs). Without this:
+#   - the uv python3 shim in ~/.local/bin is shadowed by the deprecated
+#     system Python 3.9
+#   - `bash` resolves to the system Bash 3.2, so scripts that require Bash 4+
+#     fail (e.g. the Kotlin pre-commit hook in a work repo)
+# Only zsh needs this: .zshenv is the sole startup file that runs before
+# path_helper. /etc/profile runs path_helper *before* ~/.bash_profile, so
+# common.sh's brew shellenv already wins for bash.
+# The (N) qualifier drops prefixes this machine lacks — Homebrew is under
+# /opt/homebrew on arm64 and /usr/local on Intel, where path_helper already
+# hoists bin and only sbin is left behind. zsh-only syntax.
 # shellcheck disable=SC3030,SC3044,SC2128
-typeset -U path && path=("$HOME/.local/bin" "$HOME/bin" $path)
+typeset -U path && path=("$HOME/.local/bin" "$HOME/bin" /opt/homebrew/bin(N) /opt/homebrew/sbin(N) /usr/local/sbin(N) $path)
 {{- end }}
