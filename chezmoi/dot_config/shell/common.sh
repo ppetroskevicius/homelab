@@ -3,10 +3,14 @@
 # Source this from .bashrc, .zshrc, etc.
 # Make changes in portable sh-style syntax (shellcheck compatible)
 
+# Re-entrancy guard. Deliberately NOT exported: exporting it makes every child
+# shell inherit the guard and skip this file, so nested shells silently lose the
+# aliases and functions below (PATH survives only because PATH itself is
+# exported). Everything here is idempotent, so re-running per shell is safe.
 if [ -n "${COMMON_SH_LOADED-}" ]; then
   return 0
 fi
-export COMMON_SH_LOADED=1
+COMMON_SH_LOADED=1
 
 export EDITOR='vim'
 export CLICOLOR=1
@@ -38,7 +42,9 @@ if [ "$(uname -s)" = "Darwin" ]; then
   fi
 fi
 
-PATH="$HOME/bin:$HOME/.local/bin:$PATH"
+# .local/bin first, then bin — add_to_path prepends, so this yields bin:.local/bin
+add_to_path "$HOME/.local/bin"
+add_to_path "$HOME/bin"
 add_to_path "$HOME/.npm-global/bin"
 add_to_path "$HOME/.cargo/bin"
 add_to_path "/opt/rocm-6.4.0/bin"
@@ -79,7 +85,7 @@ elif [ -d "/usr/lib/jvm/default-java" ]; then
 fi
 if [ -n "${JAVA_HOME-}" ]; then
   export JAVA_HOME
-  PATH="$JAVA_HOME/bin:$PATH"
+  add_to_path "$JAVA_HOME/bin"
   export PATH
 fi
 
