@@ -26,23 +26,7 @@
     executable: /bin/bash
     creates: "{{ ansible_facts.env.HOME }}/.cargo/bin/i3status-rs"
 
-# Alacritty (build from source for Wayland support)
-- name: Clone Alacritty repository
-  ansible.builtin.git:
-    repo: https://github.com/alacritty/alacritty.git
-    dest: /tmp/alacritty
-    depth: 1
-    version: master
-  register: alacritty_clone
-
-- name: Build and install Alacritty
-  ansible.builtin.shell: |
-    source {{ ansible_facts.env.HOME }}/.cargo/env
-    cd /tmp/alacritty
-    cargo install --path alacritty --locked
-  args:
-    executable: /bin/bash
-    creates: "{{ ansible_facts.env.HOME }}/.cargo/bin/alacritty"
+# Alacritty is built from a pinned release tag in alacritty.yml (both platforms).
 
 # Install other cargo tools directly
 - name: Install kickoff via cargo
@@ -76,4 +60,3 @@
     state: absent
   loop:
     - /tmp/i3status-rust
-    - /tmp/alacritty

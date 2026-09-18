@@ -53,7 +53,7 @@ This replaces the bootstrap config with your full configuration (alacritty, kick
 
 | Component | Bootstrap (Phase 1) | Full (After chezmoi apply) |
 |-----------|---------------------|---------------------------|
-| Terminal | `foot` (apt) | `alacritty` (cargo) |
+| Terminal | `foot` (apt) | `alacritty` (source, pinned — see [ALACRITTY.md](ALACRITTY.md)) |
 | Launcher | `wofi` (apt) | `kickoff` (cargo) |
 | Status bar | Basic sway bar | `i3status-rs` (cargo) |
 | Secrets | None | 1Password integration |

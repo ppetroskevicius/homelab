@@ -15,7 +15,7 @@
 - name: Install fonts
   ansible.builtin.include_tasks: fonts.yml
 
-# Desktop tools AFTER sway - builds alacritty, kickoff via cargo (takes longer)
+# Desktop tools AFTER sway - builds kickoff, i3status-rs via cargo (takes longer)
 - name: Install desktop tools (cargo builds)
   ansible.builtin.include_tasks: desktop_tools.yml
   when: ansible_facts['os_family'] == "Debian"
@@ -26,6 +26,22 @@
 
 - name: Install desktop applications
   ansible.builtin.include_tasks: desktop_apps.yml
+
+# Alacritty is built from source on both platforms (pinned to
+# alacritty_version) since the Homebrew cask was disabled. Needs the Rust
+# toolchain from the dev_languages role, which site.yml runs first.
+- name: Install Alacritty
+  ansible.builtin.include_tasks:
+    file: alacritty.yml
+    # `apply` is required: a dynamic include does NOT propagate its own tags to
+    # the tasks it includes, so `--tags alacritty` would load this file and then
+    # match nothing inside it. The include needs the tag to be reached at all,
+    # and `apply` puts it on the included tasks so they actually run.
+    apply:
+      tags: [alacritty]
+  # Tagged so a version bump can be applied on its own; the repo has no other
+  # tags, so a full run is otherwise the only way to reach this.
+  tags: [alacritty]
 
 - name: Set up Alacritty themes
   ansible.builtin.include_tasks: alacritty_themes.yml

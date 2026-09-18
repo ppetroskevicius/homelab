@@ -43,7 +43,7 @@ Ansible prepares the desktop with a working Sway environment:
 # What Ansible does:
 1. Install GPU drivers, fonts
 2. Install Sway/Wayland packages and bootstrap Sway config
-3. Build desktop tools (alacritty, kickoff, i3status-rs) via cargo
+3. Build desktop tools (kickoff, i3status-rs) via cargo, then Alacritty from its pinned release tag (see [ALACRITTY.md](ALACRITTY.md))
 4. Install desktop applications
 5. Install zsh, Oh My Zsh, plugins
 6. Download chezmoi binary

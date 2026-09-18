@@ -103,5 +103,6 @@ For detailed information on specific aspects of the homelab:
 - **[docs/SHELL_STRATEGY.md](docs/SHELL_STRATEGY.md)** - Shell startup scripts management
 - **[docs/LEGACY_REFERENCE.md](docs/LEGACY_REFERENCE.md)** - Legacy bash scripts documentation (migration reference)
 - **[docs/CHEZMOI.md](docs/CHEZMOI.md)** - Dotfiles deployment strategy (desktop vs non-desktop)
+- **[docs/ALACRITTY.md](docs/ALACRITTY.md)** - Terminal: source build (Homebrew cask disabled), pinning & upgrade
 - **[docs/CHEZMOI_CHEAT_SHEET.md](docs/CHEZMOI_CHEAT_SHEET.md)** - Chezmoi quick reference
 - **[ROADMAP.md](ROADMAP.md)** - Implementation roadmap and migration phases
