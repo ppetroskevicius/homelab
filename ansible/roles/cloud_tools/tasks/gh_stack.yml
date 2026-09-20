@@ -1,0 +1,18 @@
+---
+# Install gh-stack (GitHub Stacked PRs) - official gh extension
+# https://github.com/github/gh-stack
+#
+# gh itself comes from github_cli.yml (Linux) or the common role's Homebrew list
+# (macOS, including work-mac). Extensions are per-user, so this must not run with become.
+#
+# The guard is a `creates:` on the extension's manifest, not `gh extension list`:
+# `list` requires `gh auth login`, `install` does not, so this stays idempotent on a
+# fresh machine before the first login.
+#
+# Upgrades are not handled here (a `creates:` guard never fires again once installed);
+# run `gh extension upgrade gh-stack` to update.
+
+- name: Install gh-stack (gh extension install)
+  ansible.builtin.command: gh extension install github/gh-stack
+  args:
+    creates: "{{ ansible_facts.env.HOME }}/.local/share/gh/extensions/gh-stack/manifest.yml"

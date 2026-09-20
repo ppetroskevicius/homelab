@@ -176,6 +176,7 @@ This document maps all packages, tools, and configurations to the 5 machine type
 | Package/Tool    | bm-hypervisor | vm-k8s-node | vm-dev-container | vm-service | dt-dev | Notes                 |
 | --------------- | ------------- | ----------- | ---------------- | ---------- | ------ | --------------------- |
 | GitHub CLI (gh) | ✗             | ✗           | ✗                | ✗          | ✓      | GitHub command line   |
+| gh-stack        | ✗             | ✗           | ✗                | ✗          | ✓      | Stacked PRs (gh ext)  |
 | Yazi            | ✗             | ✗           | ✗                | ✗          | ✓      | Terminal file manager |
 | Playwright      | ✗             | ✗           | ✗                | ✗          | ✓      | Browser automation    |
 

@@ -169,7 +169,7 @@ The main playbook currently uses these roles:
 - `container` - Docker and K3s
 - `desktop` - Sway, desktop apps, audio, fonts, rclone sync
 - `dev_languages` - Rust, Python tooling, mise, Go, Java/Kotlin, Deno
-- `cloud_tools` - AWS/GCP CLIs, Terraform, GitHub CLI, Playwright/Firebase utilities
+- `cloud_tools` - AWS/GCP CLIs, Terraform, GitHub CLI + gh-stack extension, Playwright/Firebase utilities
 
 ### 3. Set Up SSH Keys
 
