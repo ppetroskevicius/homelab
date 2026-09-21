@@ -1,0 +1,397 @@
+#!/usr/bin/env bash
+# agent-usage-snapshot — archive Claude Code / Codex usage from ccusage, then report from the archive.
+#
+# WHY THIS EXISTS: Claude Code prunes its own transcripts (cleanupPeriodDays: 30), and ccusage only
+# reads what is on disk. So the job is not "print a report" but "snapshot ccusage's JSON into a durable
+# archive before the source is deleted". Reports are rendered from the archive, never from a fresh
+# ccusage call. See docs/AGENT_USAGE.md.
+#
+# Deployed by Ansible (roles/desktop/tasks/agent_usage.yml) to ~/.local/bin and run by launchd
+# (com.homelab.agent-usage). macOS only (BSD `date`). Written for bash 3.2 (/bin/bash) and newer.
+#
+# Usage: agent-usage-snapshot [--backfill] [--digest [YYYY-MM-DD]] [--no-snapshot] [--no-notify]
+#   --backfill       one-time: re-read all history on disk instead of the 14-day lookback
+#   --digest [DATE]  (re)render the digest for the ISO week containing DATE (default: last full week)
+#   --no-snapshot    skip ccusage; only render the digest from the existing archive
+#   --no-notify      no macOS notification
+# Test knobs (env): AGENT_USAGE_HOME, AGENT_USAGE_TODAY, AGENT_USAGE_CLAUDE_PROFILES,
+#   AGENT_USAGE_CODEX_HOME, AGENT_USAGE_LOG, AGENT_USAGE_NOTIFY=0, CCUSAGE_BIN, AGENT_USAGE_TZ
+
+# shellcheck disable=SC2016,SC2015  # jq programs live in single quotes on purpose; A && B || C is intended
+set -euo pipefail
+
+# Pin the timezone: archived day boundaries must never shift, and `date` here must agree with ccusage.
+export TZ="${AGENT_USAGE_TZ:-Asia/Tokyo}"
+# launchd gives a minimal environment; common.sh (which sets PATH for shells) is never sourced.
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:${PATH:-}"
+
+AU_HOME="${AGENT_USAGE_HOME:-$HOME/.local/share/agent-usage}"
+CCUSAGE="${CCUSAGE_BIN:-ccusage}"
+LOG="${AGENT_USAGE_LOG:-$HOME/Library/Logs/agent-usage.log}"
+LOOKBACK_DAYS=14    # << 30-day Claude retention, so the window never touches a partially-pruned day
+GAP_WARN_DAYS=20    # a longer silence risks Claude data older than 30 days being unrecoverable
+CLAUDE_PROFILES="${AGENT_USAGE_CLAUDE_PROFILES:-claude-default=$HOME/.claude claude-personal=$HOME/.claude-personal}"
+# ~/.codex-personal/sessions is a symlink to ~/.codex/sessions; one dir is sufficient.
+CODEX_DIR="${AGENT_USAGE_CODEX_HOME:-$HOME/.codex}"
+
+HIST="$AU_HOME/history.ndjson"
+STATE="$AU_HOME/state.json"
+REPORTS="$AU_HOME/reports"
+LOCK="$AU_HOME/.lock"
+
+BACKFILL=0
+NOTIFY="${AGENT_USAGE_NOTIFY:-1}"
+DO_SNAPSHOT=1
+FORCE_DIGEST=0
+DIGEST_DATE=""
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --backfill) BACKFILL=1 ;;
+    --no-notify) NOTIFY=0 ;;
+    --no-snapshot) DO_SNAPSHOT=0 ;;
+    --digest)
+      FORCE_DIGEST=1
+      if [ $# -gt 1 ] && [ "${2#--}" = "$2" ]; then DIGEST_DATE="$2"; shift; fi
+      ;;
+    -h | --help) sed -n '2,20p' "$0"; exit 0 ;;
+    *) echo "unknown argument: $1" >&2; exit 2 ;;
+  esac
+  shift
+done
+
+log() { printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"; }
+
+notify() { # title message — argv form, so quotes in the message cannot break the AppleScript
+  [ "$NOTIFY" = "1" ] || return 0
+  osascript -e 'on run argv' -e 'display notification (item 2 of argv) with title (item 1 of argv)' -e 'end run' -- "$1" "$2" >/dev/null 2>&1 || true
+}
+
+# dshift 2026-09-21 -14d.  BSD date stops parsing options at the first operand, so -v must precede the date.
+dshift() { date -j "-v$2" -f '%Y-%m-%d' "$1" '+%Y-%m-%d'; }
+TODAY="${AGENT_USAGE_TODAY:-$(date +%Y-%m-%d)}"
+
+mkdir -p "$AU_HOME" "$REPORTS" "$(dirname "$LOG")"
+chmod 700 "$AU_HOME"
+
+# Keep the launchd log small: trim to the last 500 lines once it passes ~1 MB.
+if [ -f "$LOG" ] && [ "$(wc -c <"$LOG")" -gt 1048576 ]; then
+  tail -n 500 "$LOG" >"$LOG.tmp" && cat "$LOG.tmp" >"$LOG" && rm -f "$LOG.tmp"
+fi
+
+# Single-instance lock: RunAtLoad and the calendar fire must not overlap.
+if ! mkdir "$LOCK" 2>/dev/null; then
+  if [ -f "$LOCK/pid" ] && kill -0 "$(cat "$LOCK/pid")" 2>/dev/null; then
+    log "another run is in progress (pid $(cat "$LOCK/pid")); exiting"
+    exit 0
+  fi
+  rm -rf "$LOCK"
+  mkdir "$LOCK"
+fi
+echo $$ >"$LOCK/pid"
+WORK="$(mktemp -d "${TMPDIR:-/tmp}/agent-usage.XXXXXX")"
+trap 'rm -rf "$LOCK" "$WORK"' EXIT
+
+# ---------------------------------------------------------------------------------------------
+# Snapshot
+# ---------------------------------------------------------------------------------------------
+
+# Normalise one ccusage daily report into archive rows. Claude and Codex have different schemas:
+#   claude: .daily[].{totalCost, modelBreakdowns[].{modelName,cost,...}}
+#   codex : .daily[].{costUSD,  models{<name>:{...,isFallback}}}      (no per-model cost)
+# Every field goes through num(), so schema drift fails loudly instead of archiving garbage.
+# Row kinds: "day" is authoritative for totals and cost; "model" carries the token mix.
+NORMALISE_JQ='
+def num: if type == "number" then . else error("ccusage schema drift: expected number, got \(type)") end;
+def r6: (. * 1000000 | round) / 1000000;
+def fields($v; $c; $reason): {
+  input: ($v.inputTokens | num), output: ($v.outputTokens | num),
+  cacheCreate: ($v.cacheCreationTokens | num), cacheRead: ($v.cacheReadTokens | num),
+  reasoning: $reason, cost: $c };
+if (.daily | type) != "array" then error("ccusage schema drift: .daily is not an array") else . end
+| .daily[] as $d
+| ( { kind: "day", profile: $profile, agent: $agent, date: $d.date }
+    + fields($d; (if $agent == "claude" then $d.totalCost else $d.costUSD end | num | r6);
+             (if $agent == "codex" then ($d.reasoningOutputTokens | num) else 0 end))
+    + { total: ($d.totalTokens | num) } ),
+  ( if $agent == "claude" then
+      $d.modelBreakdowns[]
+      | { kind: "model", profile: $profile, agent: $agent, date: $d.date, model: .modelName, estimated: false }
+        + fields(.; (.cost | num | r6); 0)
+        + { total: (.inputTokens + .outputTokens + .cacheCreationTokens + .cacheReadTokens) }
+    else
+      $d.models | to_entries[]
+      | { kind: "model", profile: $profile, agent: $agent, date: $d.date, model: .key,
+          estimated: (.value.isFallback // false) }
+        + fields(.value; null; (.value.reasoningOutputTokens | num))
+        + { total: (.value.totalTokens | num) }
+    end )
+'
+
+# Merge new rows into the archive. Replace by (profile, date) so re-runs are idempotent, never delete
+# days ccusage no longer returns (they were pruned at the source), and never let a day shrink.
+UPSERT_JQ='
+def rk: "\(.profile)|\(.date)";
+def set: map({key: ., value: true}) | from_entries;
+($old | map(select(.kind == "day") | {key: rk, value: .total}) | from_entries) as $oldtotal
+| ($new | map(select(.kind == "day" and (($oldtotal[rk] // -1) > .total)) | rk) | set) as $shrunk
+| ($new | map(rk) | unique | set) as $replace
+| ( $old | map(select((($replace[rk] // false) | not) or ($shrunk[rk] // false))) )
+  + ( $new | map(select(($shrunk[rk] // false) | not)) )
+| sort_by([.date, .profile, .kind, (.model // "")])
+| .[]
+'
+
+snapshot_source() { # profile agent source_dir marker_subdir  -> returns 0 ok, 1 failed, 3 skipped
+  local profile="$1" agent="$2" dir="$3" marker="$4"
+  local since out err rows rc=0
+  if [ ! -d "$dir/$marker" ]; then
+    # ccusage exits 0 with empty data for a missing Codex dir, so check ourselves.
+    log "[$profile] SKIP: $dir/$marker does not exist"
+    return 3
+  fi
+  # Read everything on disk when asked to, and also whenever this profile has no rows in the archive yet:
+  # a fresh install, a newly added profile, a deleted archive, or a first run that partly failed. That
+  # makes recovery automatic instead of depending on someone remembering `--backfill`.
+  if [ "$BACKFILL" = "1" ]; then
+    since="2020-01-01"
+  elif ! grep -Fq "\"profile\":\"$profile\"" "$HIST" 2>/dev/null; then
+    since="2020-01-01"
+    log "[$profile] no archived rows yet: reading everything on disk"
+  else
+    since="$(dshift "$TODAY" "-${LOOKBACK_DAYS}d")"
+  fi
+  out="$WORK/$profile.json"; err="$WORK/$profile.err"; rows="$WORK/$profile.rows"
+
+  if [ "$agent" = "claude" ]; then
+    CLAUDE_CONFIG_DIR="$dir" LOG_LEVEL=0 "$CCUSAGE" claude daily --json --breakdown \
+      --since "$since" --timezone "$TZ" >"$out" 2>"$err" || rc=$?
+  else
+    CODEX_HOME="$dir" LOG_LEVEL=0 "$CCUSAGE" codex daily --json --breakdown \
+      --since "$since" --timezone "$TZ" >"$out" 2>"$err" || rc=$?
+  fi
+  if [ "$rc" -ne 0 ]; then
+    log "[$profile] FAIL: ccusage exited $rc: $(cat "$err" "$out" | head -c 400 | tr '\n' ' ')"
+    return 1
+  fi
+  if ! jq -c --arg profile "$profile" --arg agent "$agent" "$NORMALISE_JQ" "$out" >"$rows" 2>"$err"; then
+    log "[$profile] FAIL: could not normalise ccusage output: $(head -c 400 "$err" | tr '\n' ' ')"
+    return 1
+  fi
+  touch "$HIST"
+  if ! jq -c -n -S --slurpfile old "$HIST" --slurpfile new "$rows" "$UPSERT_JQ" >"$HIST.tmp.$$" 2>"$err"; then
+    log "[$profile] FAIL: upsert failed: $(head -c 400 "$err" | tr '\n' ' ')"
+    rm -f "$HIST.tmp.$$"
+    return 1
+  fi
+  mv "$HIST.tmp.$$" "$HIST"   # atomic: the archive is either fully old or fully new
+  log "[$profile] ok: $(jq -s 'map(select(.kind == "day")) | length' "$rows") day-rows since $since"
+  # Surface ccusage's own "no price for this model" signal; without it a missing price is a silent $0.
+  jq -c --arg p "$profile" '{name: $p, unpricedModels: (.totals.unpricedModels // [])}' "$out" >>"$WORK/unpriced.ndjson" || true
+  return 0
+}
+
+record_status() { # name ok|skipped|failed [message]
+  jq -n -c --arg n "$1" --arg s "$2" --arg m "${3:-}" \
+    '{name: $n, status: $s, message: (if $m == "" then null else $m end)}' >>"$WORK/status.ndjson"
+}
+
+NOW="$(date '+%Y-%m-%dT%H:%M:%S%z')"
+CCUSAGE_VERSION="unknown"
+FAILED=0
+
+if [ "$DO_SNAPSHOT" = "1" ]; then
+  if ! command -v "$CCUSAGE" >/dev/null 2>&1; then
+    log "FAIL: ccusage not found on PATH ($PATH)"
+    notify "Agent usage: FAILED" "ccusage not found. See ~/Library/Logs/agent-usage.log"
+    exit 1
+  fi
+  CCUSAGE_VERSION="$("$CCUSAGE" --version 2>/dev/null | awk '{print $NF}' || true)"
+  [ -n "$CCUSAGE_VERSION" ] || CCUSAGE_VERSION="unknown"
+  log "start: ccusage $CCUSAGE_VERSION, today=$TODAY, backfill=$BACKFILL"
+
+  # Gap warning: if we have been silent long enough that the 30-day prune may have eaten data.
+  if [ -f "$STATE" ]; then
+    prev_ok="$(jq -r '.lastSuccess // empty' "$STATE" 2>/dev/null || true)"
+    if [ -n "$prev_ok" ]; then
+      prev_epoch="$(date -j -f '%Y-%m-%dT%H:%M:%S%z' "$prev_ok" +%s 2>/dev/null || echo "")"
+      if [ -n "$prev_epoch" ]; then
+        age_days=$(( ( $(date +%s) - prev_epoch ) / 86400 ))
+        if [ "$age_days" -gt "$GAP_WARN_DAYS" ]; then
+          log "WARN: last successful snapshot was $age_days days ago; Claude history older than 30 days is unrecoverable"
+          notify "Agent usage: archive gap" "Last snapshot was $age_days days ago; older Claude data may be gone."
+        fi
+      fi
+    fi
+  fi
+
+  for entry in $CLAUDE_PROFILES; do
+    name="${entry%%=*}"; path="${entry#*=}"
+    rc=0; snapshot_source "$name" claude "$path" projects || rc=$?
+    case "$rc" in
+      0) record_status "$name" ok ;;
+      3) record_status "$name" skipped "$path/projects does not exist" ;;
+      *) record_status "$name" failed "ccusage or archive step failed (see log)"; FAILED=1 ;;
+    esac
+  done
+  rc=0; snapshot_source codex codex "$CODEX_DIR" sessions || rc=$?
+  case "$rc" in
+    0) record_status codex ok ;;
+    3) record_status codex skipped "$CODEX_DIR/sessions does not exist" ;;
+    *) record_status codex failed "ccusage or archive step failed (see log)"; FAILED=1 ;;
+  esac
+
+  touch "$WORK/status.ndjson" "$WORK/unpriced.ndjson"
+  [ -f "$STATE" ] || echo '{}' >"$STATE"
+  # lastSuccess only advances when nothing failed AND at least one source really ran. Skipped sources
+  # never count, otherwise a broken $HOME (everything skipped) would silence the gap warning.
+  jq -n -S --slurpfile prev "$STATE" \
+    --slurpfile st "$WORK/status.ndjson" --slurpfile up "$WORK/unpriced.ndjson" \
+    --arg now "$NOW" --arg ver "$CCUSAGE_VERSION" --argjson failed "$FAILED" '
+    ($prev[0] // {}) as $p
+    | ($up | map({key: .name, value: .unpricedModels}) | from_entries) as $u
+    | { ccusageVersion: $ver, lastRun: $now,
+        lastSuccess: (if $failed == 0 and ($st | map(select(.status == "ok")) | length) > 0
+                      then $now else ($p.lastSuccess // null) end),
+        # Rebuilt from the sources configured this run, so a renamed or removed profile does not
+        # linger in state.json (and in the digest Notes) forever.
+        profiles: (($p.profiles // {}) as $pp | reduce $st[] as $s ({};
+            .[$s.name] = (($pp[$s.name] // {})
+              + {status: $s.status, message: $s.message, unpricedModels: ($u[$s.name] // [])}
+              + (if $s.status == "ok" then {lastSuccess: $now} else {} end)))) }
+  ' >"$STATE.tmp.$$" && mv "$STATE.tmp.$$" "$STATE" || log "WARN: could not update $STATE"
+
+  if [ "$FAILED" != "0" ]; then
+    notify "Agent usage: FAILED" "A snapshot step failed. See ~/Library/Logs/agent-usage.log"
+  fi
+fi
+
+# ---------------------------------------------------------------------------------------------
+# Weekly digest (state-driven: rendered whenever last full ISO week has no report yet, so a missed
+# Monday simply shows up on the next run)
+# ---------------------------------------------------------------------------------------------
+
+DIGEST_JQ_DEFS='
+def usd: (. * 100 | round | if . == 0 then 0 else . end) as $c | "$\($c / 100 | floor).\(($c % 100) | tostring | if length < 2 then "0" + . else . end)";
+def f1: (. * 10 | round) as $n | "\($n / 10 | floor).\($n % 10)";
+def mtok: (. / 1000000 | f1) + "M";
+def delta($a; $b): if $b == 0 then "n/a" elif $a >= $b then "+" + ((($a - $b) / $b * 100) | f1) + "%" else "-" + ((($b - $a) / $b * 100) | f1) + "%" end;
+def inweek($w): select(.date >= $w.start and .date <= $w.end);
+def sum(f): map(f) | add // 0;
+'
+
+render_digest() { # any-date-in-target-week
+  local ref="$1" dow monday label i m weeks="[" sep=""
+  dow="$(date -j -f '%Y-%m-%d' "$ref" +%u)"                      # 1=Mon .. 7=Sun
+  monday="$(dshift "$ref" "-$((dow - 1))d")"
+  label="$(date -j -f '%Y-%m-%d' "$monday" +%G-W%V)"
+  # 8 ISO weeks ending at the target week, oldest first, for the trend table.
+  for i in 7 6 5 4 3 2 1 0; do
+    m="$(dshift "$monday" "-$((i * 7))d")"
+    weeks="$weeks$sep{\"label\":\"$(date -j -f '%Y-%m-%d' "$m" +%G-W%V)\",\"start\":\"$m\",\"end\":\"$(dshift "$m" '+6d')\"}"
+    sep=","
+  done
+  weeks="$weeks]"
+  touch "$HIST"
+  [ -f "$STATE" ] || echo '{}' >"$STATE"
+
+  jq -r -n --slurpfile rows "$HIST" --slurpfile state "$STATE" --argjson weeks "$weeks" \
+    --arg label "$label" --arg generated "$(date '+%Y-%m-%d %H:%M %Z')" "$DIGEST_JQ_DEFS"'
+    ($rows) as $R
+    | ($R | map(select(.kind == "day"))) as $D
+    | ($R | map(select(.kind == "model"))) as $M
+    | $weeks[-1] as $cur | $weeks[-2] as $prev
+    | ($D | map(inweek($cur))) as $dc
+    | ($D | map(inweek($prev))) as $dp
+    | ([$D[].profile] | unique) as $profiles
+    | ($state[0] // {}) as $st
+    | ($dc | sum(.cost)) as $tc | ($dp | sum(.cost)) as $tp
+    | "# Agent usage — \($label) (\($cur.start) → \($cur.end))",
+      "",
+      "**Total: \($tc | usd) · \($dc | sum(.total) | mtok) tokens · \(delta($tc; $tp)) cost vs previous week**",
+      "",
+      "Generated \($generated) · ccusage \($st.ccusageVersion // "?") · costs are API list-price *estimates*, not what a subscription bills — read them as a relative usage measure.",
+      "",
+      "## By profile",
+      "",
+      "| Profile | Tokens | Cost | Active days | Cost vs prev week |",
+      "|---|---:|---:|---:|---:|",
+      ( $profiles[] as $p
+        | ($dc | map(select(.profile == $p))) as $c | ($dp | map(select(.profile == $p))) as $q
+        | "| \($p) | \($c | sum(.total) | mtok) | \($c | sum(.cost) | usd) | \($c | map(select(.total > 0) | .date) | unique | length) | \(delta($c | sum(.cost); $q | sum(.cost))) |" ),
+      "",
+      "## Model mix (by tokens)",
+      "",
+      "| Model | Tokens | Share | Cost |",
+      "|---|---:|---:|---:|",
+      ( ($M | map(inweek($cur))) as $mc
+        | ($mc | sum(.total)) as $mt
+        | ($mc | group_by(.model) | map({model: .[0].model, total: sum(.total),
+              cost: (if all(.[]; .cost == null) then null else sum(.cost // 0) end),
+              estimated: any(.[]; .estimated)}) | sort_by(-.total) | .[0:10])[]
+        | "| \(.model)\(if .estimated then " †" else "" end) | \(.total | mtok) | \(if $mt == 0 then "n/a" else ((.total / $mt * 100) | f1) + "%" end) | \(if .cost == null then "—" else (.cost | usd) end) |" ),
+      "",
+      "## Cache and busiest day",
+      "",
+      ( $profiles[] as $p
+        | ($dc | map(select(.profile == $p))) as $c
+        | ($c | group_by(.date) | map({date: .[0].date, cost: sum(.cost)}) | max_by(.cost)) as $bd
+        | "- **\($p)**: cache reads = \(if ($c | sum(.total)) == 0 then "n/a" else (($c | sum(.cacheRead)) / ($c | sum(.total)) * 100 | f1) + "%" end) of tokens; busiest day \(if $bd == null then "n/a" else "\($bd.date) (\($bd.cost | usd))" end)" ),
+      "",
+      "## Trend — cost per ISO week",
+      "",
+      "\"—\" means no recorded usage: either idle, or older than the archive (Claude Code prunes transcripts after 30 days).",
+      "",
+      "| Week | \($profiles | join(" | ")) | Total |",
+      "|---|\($profiles | map("---:") | join("|"))|---:|",
+      ( $weeks[] as $w
+        | ($D | map(inweek($w))) as $wd
+        | "| \($w.label) | \($profiles | map(. as $p | $wd | map(select(.profile == $p)) | if length == 0 then "—" else sum(.cost) | usd end) | join(" | ")) | \(if ($wd | length) == 0 then "—" else ($wd | sum(.cost) | usd) end) |" ),
+      "",
+      "## Notes",
+      "",
+      "- Codex reports cost per day only, not per model, so its model rows show \"—\" and the cost totals above come from day-level rows.",
+      ( ($M | map(inweek($cur) | select(.estimated)) | length) as $est
+        | if $est > 0 then "- † \($est) Codex model-day(s) this week were priced with ccusage'"'"'s fallback rate (model not in its price table), so those costs are estimates of estimates." else empty end ),
+      ( $st.profiles // {} | to_entries[]
+        | select((.value.unpricedModels // []) | length > 0)
+        | "- ⚠ \(.key): ccusage has no price for \(.value.unpricedModels | join(", ")) — counted as $0." ),
+      ( $st.profiles // {} | to_entries[]
+        | select((.value.status // "ok") != "ok")
+        | "- ⚠ \(.key): \(.value.status) — \(.value.message // "see log")" ),
+      "- Claude transcripts older than 30 days are pruned by Claude Code; history before this archive started cannot be recovered."
+  ' >"$REPORTS/$label.md.tmp.$$"
+  mv "$REPORTS/$label.md.tmp.$$" "$REPORTS/$label.md"
+  cp "$REPORTS/$label.md" "$REPORTS/latest.md"
+  log "digest written: $REPORTS/$label.md"
+  DIGEST_LABEL="$label"
+}
+
+DIGEST_LABEL=""
+if [ -n "$DIGEST_DATE" ]; then
+  render_digest "$DIGEST_DATE"
+elif [ "$FAILED" = "0" ]; then
+  # Default target: the last full ISO week (today-7d always falls inside it).
+  target="$(dshift "$TODAY" '-7d')"
+  target_dow="$(date -j -f '%Y-%m-%d' "$target" +%u)"
+  target_mon="$(dshift "$target" "-$((target_dow - 1))d")"
+  target_sun="$(dshift "$target_mon" '+6d')"
+  target_label="$(date -j -f '%Y-%m-%d' "$target_mon" +%G-W%V)"
+  if [ "$FORCE_DIGEST" = "1" ] || [ ! -f "$REPORTS/$target_label.md" ]; then
+    # Only report a week the archive actually has data for (a fresh install has nothing yet).
+    if [ -s "$HIST" ] && jq -s -e --arg s "$target_mon" --arg e "$target_sun" \
+        'any(.[]; .kind == "day" and .date >= $s and .date <= $e)' "$HIST" >/dev/null; then
+      render_digest "$target"
+    else
+      log "no archived data for $target_label yet; digest skipped"
+    fi
+  fi
+fi
+
+if [ -n "$DIGEST_LABEL" ]; then
+  headline="$(sed -n 's/^\*\*Total: \(.*\)\*\*$/\1/p' "$REPORTS/$DIGEST_LABEL.md" | head -1)"
+  notify "Agent usage $DIGEST_LABEL" "$headline"
+fi
+
+log "done (failed=$FAILED)"
+exit "$FAILED"

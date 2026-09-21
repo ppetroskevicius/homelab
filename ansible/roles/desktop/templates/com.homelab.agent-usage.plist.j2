@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Managed by Ansible (roles/desktop/templates/com.homelab.agent-usage.plist.j2). See docs/AGENT_USAGE.md. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>{{ agent_usage_label }}</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>{{ ansible_facts.env.HOME }}/.local/bin/agent-usage-snapshot</string>
+  </array>
+
+  <!-- launchd does not source common.sh, so nothing from a login shell (mise, nvm) is available.
+       ccusage is a native Homebrew binary and needs only these. -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/bin:/bin</string>
+    <key>HOME</key>
+    <string>{{ ansible_facts.env.HOME }}</string>
+  </dict>
+
+  <!-- Daily, local time. A run missed while the Mac slept fires once on wake; RunAtLoad covers login.
+       The script is idempotent over a 14-day lookback, so extra runs are harmless. -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>{{ agent_usage_hour }}</integer>
+    <key>Minute</key>
+    <integer>{{ agent_usage_minute }}</integer>
+  </dict>
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>ProcessType</key>
+  <string>Background</string>
+  <key>Nice</key>
+  <integer>10</integer>
+  <key>LowPriorityIO</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>{{ ansible_facts.env.HOME }}/Library/Logs/agent-usage.log</string>
+  <key>StandardErrorPath</key>
+  <string>{{ ansible_facts.env.HOME }}/Library/Logs/agent-usage.log</string>
+</dict>
+</plist>

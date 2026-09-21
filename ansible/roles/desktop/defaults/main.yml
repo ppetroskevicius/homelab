@@ -105,3 +105,9 @@ alacritty_build_deps_debian:
   - libwayland-dev
   - libegl-dev
   - libgles-dev
+
+# agent-usage: scheduled ccusage snapshot (macOS). See docs/AGENT_USAGE.md.
+# Daily, local time. launchd runs a missed calendar job once on wake, and RunAtLoad covers login.
+agent_usage_label: com.homelab.agent-usage
+agent_usage_hour: 18
+agent_usage_minute: 30
