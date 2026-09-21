@@ -328,13 +328,6 @@
     state: present
   when: ansible_facts['os_family'] == "Darwin"
 
-# Alacritty via Homebrew cask (macOS only - Linux builds from source via cargo)
-- name: Install Alacritty (macOS)
-  community.general.homebrew_cask:
-    name: alacritty
-    state: present
-  when: ansible_facts['os_family'] == "Darwin"
-
 # Figma (macOS only)
 - name: Install Figma (macOS)
   community.general.homebrew_cask:

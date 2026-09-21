@@ -80,3 +80,28 @@ desktop_script_installers:
   - name: herdr
     url: https://herdr.dev/install.sh
     creates: "{{ ansible_facts.env.HOME }}/.local/bin/herdr"
+
+# Alacritty — built from source on every platform.
+#
+# The Homebrew cask was disabled on 2026-09-01 (disable_reason:
+# fails_gatekeeper_check): upstream ships ad-hoc-signed macOS builds with no
+# Apple Developer ID and no notarization, which Homebrew's cask policy no
+# longer accepts. It will not come back unless upstream starts notarizing, so
+# macOS builds from source like Linux already did. Bump this to upgrade; both
+# platforms track the same release tag.
+alacritty_version: "0.17.0"
+
+# Alacritty's own Linux build deps (upstream INSTALL.md, plus Wayland). These
+# overlap desktop_build_deps, but alacritty.yml runs independently of the
+# cargo-tools play so it declares what it needs rather than relying on it.
+alacritty_build_deps_debian:
+  - cmake
+  - pkg-config
+  - python3
+  - libfreetype-dev
+  - libfontconfig-dev
+  - libxcb-xfixes0-dev
+  - libxkbcommon-dev
+  - libwayland-dev
+  - libegl-dev
+  - libgles-dev

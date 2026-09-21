@@ -1,0 +1,214 @@
+---
+# Alacritty — build from source, pinned to alacritty_version (defaults/main.yml).
+#
+# Both platforms build the same release tag. Previously macOS tracked stable
+# releases via the Homebrew cask while Linux tracked unreleased `master`; the
+# cask is gone (see defaults/main.yml) so this unifies them.
+#
+# Upgrades are driven by comparing the installed `--version` against the pinned
+# tag, not by a `creates:` guard — a `creates:` guard never fires again after
+# the first install, which is why the old Linux build was frozen.
+
+- name: Set Alacritty platform paths
+  ansible.builtin.set_fact:
+    alacritty_src_dir: /tmp/alacritty-build
+    alacritty_bin: >-
+      {{ '/Applications/Alacritty.app/Contents/MacOS/alacritty'
+         if ansible_facts['os_family'] == 'Darwin'
+         else ansible_facts.env.HOME ~ '/.cargo/bin/alacritty' }}
+
+- name: Check installed Alacritty version
+  ansible.builtin.command: "{{ alacritty_bin }} --version"
+  register: alacritty_installed
+  changed_when: false
+  failed_when: false
+  # Read-only probe: must run under --check too. Without this the task is
+  # skipped, stdout is empty, and the play concludes a build is needed.
+  check_mode: false
+
+# `alacritty --version` prints e.g. "alacritty 0.17.0 (94e7c88)". Extract and
+# compare the version exactly — a substring test would wrongly call 0.18.10
+# "up to date" for a 0.18.1 pin and silently skip the build.
+- name: Determine whether Alacritty needs building
+  ansible.builtin.set_fact:
+    alacritty_current: >-
+      {{ alacritty_installed.stdout | default('')
+         | regex_search('[0-9]+\.[0-9]+\.[0-9]+') | default('', true) }}
+
+- name: Decide whether Alacritty needs building
+  ansible.builtin.set_fact:
+    alacritty_needs_build: >-
+      {{ alacritty_installed.rc | default(1) != 0
+         or alacritty_current != alacritty_version }}
+
+- name: Report Alacritty version state
+  ansible.builtin.debug:
+    msg: >-
+      Alacritty {{ alacritty_current | default('') | ternary(alacritty_current, 'not installed') }}
+      -> target {{ alacritty_version }}
+      ({{ 'building' if alacritty_needs_build else 'up to date' }})
+
+# --- Build dependencies -----------------------------------------------------
+
+- name: Install Alacritty build dependencies (Linux)
+  ansible.builtin.apt:
+    name: "{{ alacritty_build_deps_debian }}"
+    state: present
+  become: true
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - alacritty_needs_build
+
+# `make app` renders the manpages with scdoc; tic and lipo ship with macOS.
+- name: Install Alacritty build dependencies (macOS)
+  community.general.homebrew:
+    name: scdoc
+    state: present
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - alacritty_needs_build
+
+# --- Source -----------------------------------------------------------------
+
+- name: Clone Alacritty at pinned tag
+  ansible.builtin.git:
+    repo: https://github.com/alacritty/alacritty.git
+    dest: "{{ alacritty_src_dir }}"
+    version: "v{{ alacritty_version }}"
+    depth: 1
+    force: true
+  when: alacritty_needs_build
+
+# --- Linux build ------------------------------------------------------------
+
+# --force so a version bump actually reinstalls over the existing binary.
+- name: Build and install Alacritty (Linux)
+  ansible.builtin.command:
+    cmd: cargo install --path alacritty --locked --force
+    chdir: "{{ alacritty_src_dir }}"
+  environment:
+    PATH: "{{ ansible_facts.env.HOME }}/.cargo/bin:{{ ansible_facts.env.PATH }}"
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - alacritty_needs_build
+    - not ansible_check_mode
+  changed_when: true
+
+- name: Install Alacritty terminfo (Linux)
+  ansible.builtin.command:
+    cmd: tic -xe alacritty,alacritty-direct extra/alacritty.info
+    chdir: "{{ alacritty_src_dir }}"
+  become: true
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - alacritty_needs_build
+    - not ansible_check_mode
+  changed_when: true
+
+# --- macOS build ------------------------------------------------------------
+
+# `make app` builds a native arm64 bundle at target/release/osx/Alacritty.app.
+# (`app-universal` also needs the x86_64-apple-darwin rustup target and builds
+# twice; there is no reason to ship a fat binary to a single Apple Silicon mac.)
+- name: Build Alacritty.app (macOS)
+  ansible.builtin.command:
+    cmd: make app
+    chdir: "{{ alacritty_src_dir }}"
+  environment:
+    PATH: "{{ ansible_facts.env.HOME }}/.cargo/bin:/opt/homebrew/bin:{{ ansible_facts.env.PATH }}"
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - alacritty_needs_build
+    - not ansible_check_mode
+  changed_when: true
+
+- name: Verify the freshly built Alacritty.app before touching the installed one (macOS)
+  ansible.builtin.command: "{{ alacritty_src_dir }}/target/release/osx/Alacritty.app/Contents/MacOS/alacritty --version"
+  register: alacritty_built_check
+  changed_when: false
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - alacritty_needs_build
+    - not ansible_check_mode
+  failed_when: >-
+    alacritty_built_check.rc != 0
+    or alacritty_version not in (alacritty_built_check.stdout | default(''))
+
+# Ordering matters: the cask owns /Applications/Alacritty.app and the
+# ~/.terminfo symlinks, so uninstalling it removes both. Build first (above),
+# untrack second, install third — that keeps the window with no app on disk as
+# short as possible. Uninstall still works on a disabled cask; only
+# install/upgrade are blocked.
+- name: Check whether the disabled Alacritty cask is still tracked (macOS)
+  ansible.builtin.command: brew list --cask alacritty
+  register: alacritty_cask_tracked
+  changed_when: false
+  failed_when: false
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - alacritty_needs_build
+    - not ansible_check_mode
+
+- name: Untrack the disabled Alacritty cask (macOS)
+  ansible.builtin.command: brew uninstall --cask alacritty
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - alacritty_needs_build
+    - not ansible_check_mode
+    - alacritty_cask_tracked.rc | default(1) == 0
+  changed_when: true
+
+- name: Remove any leftover Alacritty.app (macOS)
+  ansible.builtin.file:
+    path: /Applications/Alacritty.app
+    state: absent
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - alacritty_needs_build
+
+- name: Install Alacritty.app to /Applications (macOS)
+  ansible.builtin.copy:
+    src: "{{ alacritty_src_dir }}/target/release/osx/Alacritty.app"
+    dest: /Applications/
+    remote_src: true
+    mode: preserve
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - alacritty_needs_build
+    - not ansible_check_mode
+
+# Confirm the installed bundle is intact. `copy` with remote_src preserves the
+# code signature seal (verified: codesign -v passes on the copy), but a partial
+# copy would leave an app that silently refuses to launch.
+- name: Verify the installed Alacritty.app (macOS)
+  ansible.builtin.command: codesign --verify /Applications/Alacritty.app
+  register: alacritty_install_check
+  changed_when: false
+  failed_when: alacritty_install_check.rc != 0
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - alacritty_needs_build
+    - not ansible_check_mode
+
+# A locally built bundle never carries com.apple.quarantine, so Gatekeeper
+# does not gate it — this is what replaces the notarization the cask required.
+- name: Link Alacritty terminfo into the user database (macOS)
+  ansible.builtin.file:
+    src: "/Applications/Alacritty.app/Contents/Resources/61/{{ item }}"
+    dest: "{{ ansible_facts.env.HOME }}/.terminfo/61/{{ item }}"
+    state: link
+    force: true
+  loop:
+    - alacritty
+    - alacritty-direct
+  when:
+    - ansible_facts['os_family'] == "Darwin"
+    - alacritty_needs_build
+
+# --- Cleanup ----------------------------------------------------------------
+
+- name: Clean up Alacritty build directory
+  ansible.builtin.file:
+    path: "{{ alacritty_src_dir }}"
+    state: absent
+  when: alacritty_needs_build
