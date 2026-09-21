@@ -29,6 +29,9 @@ AU_HOME="${AGENT_USAGE_HOME:-$HOME/.local/share/agent-usage}"
 CCUSAGE="${CCUSAGE_BIN:-ccusage}"
 LOG="${AGENT_USAGE_LOG:-$HOME/Library/Logs/agent-usage.log}"
 LOOKBACK_DAYS=14    # << 30-day Claude retention, so the window never touches a partially-pruned day
+# ccusage clips a session to --since (a session spanning the edge comes back with only its in-window
+# part), so sessions use a window LONGER than Claude's 30-day retention to get complete totals.
+SESSION_LOOKBACK_DAYS=35
 GAP_WARN_DAYS=20    # a longer silence risks Claude data older than 30 days being unrecoverable
 CLAUDE_PROFILES="${AGENT_USAGE_CLAUDE_PROFILES:-claude-default=$HOME/.claude claude-personal=$HOME/.claude-personal}"
 # ~/.codex-personal/sessions is a symlink to ~/.codex/sessions; one dir is sufficient.
@@ -70,6 +73,11 @@ notify() { # title message — argv form, so quotes in the message cannot break 
 # dshift 2026-09-21 -14d.  BSD date stops parsing options at the first operand, so -v must precede the date.
 dshift() { date -j "-v$2" -f '%Y-%m-%d' "$1" '+%Y-%m-%d'; }
 TODAY="${AGENT_USAGE_TODAY:-$(date +%Y-%m-%d)}"
+
+# UTC offset of the pinned timezone in seconds: ccusage session timestamps are UTC, the archive is local dates.
+_tz="$(date +%z)"
+TZOFF_S=$(( 10#${_tz:1:2} * 3600 + 10#${_tz:3:2} * 60 ))
+if [ "${_tz:0:1}" = "-" ]; then TZOFF_S=$(( -TZOFF_S )); fi
 
 mkdir -p "$AU_HOME" "$REPORTS" "$(dirname "$LOG")"
 chmod 700 "$AU_HOME"
@@ -128,23 +136,121 @@ if (.daily | type) != "array" then error("ccusage schema drift: .daily is not an
     end )
 '
 
-# Merge new rows into the archive. Replace by (profile, date) so re-runs are idempotent, never delete
-# days ccusage no longer returns (they were pruned at the source), and never let a day shrink.
+# Normalise one ccusage SESSION report into ANONYMISED archive rows (kind "session"). Only whitelisted
+# fields are copied: projectPath / directory / sessionFile are never read, and the session id is replaced
+# by a stable hash ($sids: one line per session, same order), so the archive holds no project names and no
+# transcript handles. Sessions are dated by the day they last ran (whole-session totals).
+#   claude: .sessions[].{sessionId, firstActivity, lastActivity, totalCost, modelBreakdowns[]}
+#   codex : .sessions[].{sessionId, lastActivity, costUSD, models{}}     (no first activity, so no span)
+SESSION_JQ='
+def num: if type == "number" then . else error("ccusage schema drift: expected number, got \(type)") end;
+def r6: (. * 1000000 | round) / 1000000;
+def r1: (. * 10 | round) / 10;
+def ts: sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601;
+def day: (ts + $tzoff) | strftime("%Y-%m-%d");
+if (.sessions | type) != "array" then error("ccusage schema drift: .sessions is not an array") else . end
+| ($sids | split("\n")) as $h
+| .sessions | to_entries[]
+| .key as $i | .value as $s
+| select(($s.totalTokens | num) > 0)
+| if ($h[$i] // "") == "" then error("missing session hash") else . end
+| { kind: "session", profile: $profile, agent: $agent, sid: $h[$i], date: ($s.lastActivity | day) }
+  + ( if $agent == "claude" then
+        { hours: (((($s.lastActivity | ts) - ($s.firstActivity | ts)) / 3600) | if . < 0 then 0 else . end | r1),
+          input: ($s.inputTokens | num), output: ($s.outputTokens | num),
+          cacheCreate: ($s.cacheCreationTokens | num), cacheRead: ($s.cacheReadTokens | num),
+          reasoning: 0, cost: ($s.totalCost | num | r6),
+          model: (($s.modelBreakdowns // []) | if length == 0 then "unknown" else (max_by(.cost | num) | .modelName) end) }
+      else
+        { hours: null,
+          input: ($s.inputTokens | num), output: ($s.outputTokens | num),
+          cacheCreate: ($s.cacheCreationTokens | num), cacheRead: ($s.cacheReadTokens | num),
+          reasoning: ($s.reasoningOutputTokens | num), cost: ($s.costUSD | num | r6),
+          model: (($s.models // {}) | to_entries | if length == 0 then "unknown" else (max_by(.value.totalTokens) | .key) end) }
+      end )
+  + { total: ($s.totalTokens | num) }
+'
+
+# Merge new rows into the archive. Replace by (profile, date) for day/model rows and by (profile, session)
+# for session rows, so re-runs are idempotent; never delete rows ccusage no longer returns (pruned at the
+# source); and never let a day or a session total shrink.
 UPSERT_JQ='
-def rk: "\(.profile)|\(.date)";
+def rk: if .kind == "session" then "\(.profile)|s|\(.sid)" else "\(.profile)|\(.date)" end;
 def set: map({key: ., value: true}) | from_entries;
-($old | map(select(.kind == "day") | {key: rk, value: .total}) | from_entries) as $oldtotal
-| ($new | map(select(.kind == "day" and (($oldtotal[rk] // -1) > .total)) | rk) | set) as $shrunk
+def measured: .kind == "day" or .kind == "session";
+($old | map(select(measured) | {key: rk, value: .total}) | from_entries) as $oldtotal
+| ($new | map(select(measured and (($oldtotal[rk] // -1) > .total)) | rk) | set) as $shrunk
 | ($new | map(rk) | unique | set) as $replace
 | ( $old | map(select((($replace[rk] // false) | not) or ($shrunk[rk] // false))) )
   + ( $new | map(select(($shrunk[rk] // false) | not)) )
-| sort_by([.date, .profile, .kind, (.model // "")])
+| sort_by([.date, .profile, .kind, (.model // ""), (.sid // "")])
 | .[]
 '
 
+# stdin: one session id per line -> stdout: a stable, non-reversible 10-hex id per line.
+hash_lines() {
+  if command -v perl >/dev/null 2>&1 && perl -MDigest::SHA -e1 2>/dev/null; then
+    perl -MDigest::SHA=sha256_hex -ne 'chomp; print substr(sha256_hex($_), 0, 10), "\n"'
+  else
+    while IFS= read -r id; do printf '%s' "$id" | shasum -a 256 | cut -c1-10; done
+  fi
+}
+
+# Best-effort per-session detail for the digest. The daily archive is the authoritative record, so a
+# session-only failure is logged and surfaced in the digest Notes but does NOT fail the run.
+SESSION_ERR=""
+snapshot_sessions() { # profile agent source_dir out_rows_file  -> 0 ok, 1 failed (reason in $SESSION_ERR)
+  local profile="$1" agent="$2" dir="$3" outrows="$4"
+  local since sout serr ids hashes rc=0
+  SESSION_ERR=""
+  sout="$WORK/$profile.sessions.json"; serr="$WORK/$profile.sessions.err"
+  ids="$WORK/$profile.sids"; hashes="$WORK/$profile.shas"
+  # Full read when asked to, and whenever this profile has no session rows yet (fresh install, or the first
+  # run after this feature was added), mirroring the per-profile auto-backfill of the day rows.
+  if [ "$BACKFILL" = "1" ] || ! awk -v p="\"profile\":\"$profile\"" \
+      'index($0, "\"kind\":\"session\"") && index($0, p) { f = 1; exit } END { exit !f }' "$HIST" 2>/dev/null; then
+    since="2020-01-01"
+    log "[$profile] reading all sessions on disk"
+  else
+    since="$(dshift "$TODAY" "-${SESSION_LOOKBACK_DAYS}d")"
+  fi
+  if [ "$agent" = "claude" ]; then
+    CLAUDE_CONFIG_DIR="$dir" LOG_LEVEL=0 "$CCUSAGE" claude session --json \
+      --since "$since" --timezone "$TZ" >"$sout" 2>"$serr" || rc=$?
+  else
+    CODEX_HOME="$dir" LOG_LEVEL=0 "$CCUSAGE" codex session --json \
+      --since "$since" --timezone "$TZ" >"$sout" 2>"$serr" || rc=$?
+  fi
+  if [ "$rc" -ne 0 ]; then
+    SESSION_ERR="ccusage session exited $rc"
+    log "[$profile] WARN: $SESSION_ERR: $(cat "$serr" "$sout" | head -c 300 | tr '\n' ' ')"
+    return 1
+  fi
+  if ! jq -r '.sessions[].sessionId | if type == "string" and length > 0 then . else error("session without an id") end' \
+      "$sout" >"$ids" 2>"$serr"; then
+    SESSION_ERR="unexpected session JSON"
+    log "[$profile] WARN: $SESSION_ERR: $(head -c 300 "$serr" | tr '\n' ' ')"
+    return 1
+  fi
+  hash_lines <"$ids" >"$hashes"
+  if [ $(( $(wc -l <"$ids") )) -ne $(( $(wc -l <"$hashes") )) ]; then
+    SESSION_ERR="session id hashing failed"
+    log "[$profile] WARN: $SESSION_ERR"
+    return 1
+  fi
+  if ! jq -c --arg profile "$profile" --arg agent "$agent" --argjson tzoff "$TZOFF_S" \
+      --rawfile sids "$hashes" "$SESSION_JQ" "$sout" >"$outrows" 2>"$serr"; then
+    SESSION_ERR="could not normalise session output"
+    log "[$profile] WARN: $SESSION_ERR: $(head -c 300 "$serr" | tr '\n' ' ')"
+    return 1
+  fi
+  log "[$profile] ok: $(wc -l <"$outrows" | tr -d ' ') session-rows since $since"
+  return 0
+}
+
 snapshot_source() { # profile agent source_dir marker_subdir  -> returns 0 ok, 1 failed, 3 skipped
   local profile="$1" agent="$2" dir="$3" marker="$4"
-  local since out err rows rc=0
+  local since out err rows srows sstatus=ok smsg="" rc=0
   if [ ! -d "$dir/$marker" ]; then
     # ccusage exits 0 with empty data for a missing Codex dir, so check ourselves.
     log "[$profile] SKIP: $dir/$marker does not exist"
@@ -178,6 +284,15 @@ snapshot_source() { # profile agent source_dir marker_subdir  -> returns 0 ok, 1
     log "[$profile] FAIL: could not normalise ccusage output: $(head -c 400 "$err" | tr '\n' ' ')"
     return 1
   fi
+  # Session rows join the same upsert below, so the archive is still replaced atomically per source.
+  srows="$WORK/$profile.sessions.rows"
+  if snapshot_sessions "$profile" "$agent" "$dir" "$srows"; then
+    cat "$srows" >>"$rows"
+  else
+    sstatus=failed; smsg="$SESSION_ERR"
+  fi
+  jq -n -c --arg n "$profile" --arg s "$sstatus" --arg m "$smsg" \
+    '{name: $n, status: $s, message: (if $m == "" then null else $m end)}' >>"$WORK/sessions.ndjson"
   touch "$HIST"
   if ! jq -c -n -S --slurpfile old "$HIST" --slurpfile new "$rows" "$UPSERT_JQ" >"$HIST.tmp.$$" 2>"$err"; then
     log "[$profile] FAIL: upsert failed: $(head -c 400 "$err" | tr '\n' ' ')"
@@ -241,15 +356,17 @@ if [ "$DO_SNAPSHOT" = "1" ]; then
     *) record_status codex failed "ccusage or archive step failed (see log)"; FAILED=1 ;;
   esac
 
-  touch "$WORK/status.ndjson" "$WORK/unpriced.ndjson"
+  touch "$WORK/status.ndjson" "$WORK/unpriced.ndjson" "$WORK/sessions.ndjson"
   [ -f "$STATE" ] || echo '{}' >"$STATE"
   # lastSuccess only advances when nothing failed AND at least one source really ran. Skipped sources
   # never count, otherwise a broken $HOME (everything skipped) would silence the gap warning.
   jq -n -S --slurpfile prev "$STATE" \
     --slurpfile st "$WORK/status.ndjson" --slurpfile up "$WORK/unpriced.ndjson" \
+    --slurpfile ss "$WORK/sessions.ndjson" \
     --arg now "$NOW" --arg ver "$CCUSAGE_VERSION" --argjson failed "$FAILED" '
     ($prev[0] // {}) as $p
     | ($up | map({key: .name, value: .unpricedModels}) | from_entries) as $u
+    | ($ss | map({key: .name, value: {status, message}}) | from_entries) as $sess
     | { ccusageVersion: $ver, lastRun: $now,
         lastSuccess: (if $failed == 0 and ($st | map(select(.status == "ok")) | length) > 0
                       then $now else ($p.lastSuccess // null) end),
@@ -257,7 +374,8 @@ if [ "$DO_SNAPSHOT" = "1" ]; then
         # linger in state.json (and in the digest Notes) forever.
         profiles: (($p.profiles // {}) as $pp | reduce $st[] as $s ({};
             .[$s.name] = (($pp[$s.name] // {})
-              + {status: $s.status, message: $s.message, unpricedModels: ($u[$s.name] // [])}
+              + {status: $s.status, message: $s.message, unpricedModels: ($u[$s.name] // []),
+                 sessions: ($sess[$s.name] // null)}
               + (if $s.status == "ok" then {lastSuccess: $now} else {} end)))) }
   ' >"$STATE.tmp.$$" && mv "$STATE.tmp.$$" "$STATE" || log "WARN: could not update $STATE"
 
@@ -278,6 +396,8 @@ def mtok: (. / 1000000 | f1) + "M";
 def delta($a; $b): if $b == 0 then "n/a" elif $a >= $b then "+" + ((($a - $b) / $b * 100) | f1) + "%" else "-" + ((($b - $a) / $b * 100) | f1) + "%" end;
 def inweek($w): select(.date >= $w.start and .date <= $w.end);
 def sum(f): map(f) | add // 0;
+def median: sort | if length == 0 then null else ((.[((length - 1) / 2) | floor] + .[(length / 2) | floor]) / 2) end;
+def ktok: (. / 1000 | round | tostring) + "k";
 '
 
 render_digest() { # any-date-in-target-week
@@ -300,6 +420,7 @@ render_digest() { # any-date-in-target-week
     ($rows) as $R
     | ($R | map(select(.kind == "day"))) as $D
     | ($R | map(select(.kind == "model"))) as $M
+    | ($R | map(select(.kind == "session"))) as $SS
     | $weeks[-1] as $cur | $weeks[-2] as $prev
     | ($D | map(inweek($cur))) as $dc
     | ($D | map(inweek($prev))) as $dp
@@ -331,6 +452,42 @@ render_digest() { # any-date-in-target-week
               estimated: any(.[]; .estimated)}) | sort_by(-.total) | .[0:10])[]
         | "| \(.model)\(if .estimated then " †" else "" end) | \(.total | mtok) | \(if $mt == 0 then "n/a" else ((.total / $mt * 100) | f1) + "%" end) | \(if .cost == null then "—" else (.cost | usd) end) |" ),
       "",
+      "## Top sessions (anonymised)",
+      "",
+      ( ($SS | map(inweek($cur) | select(.cost > 0)) | sort_by(-.cost)) as $sw
+        | ($sw | sum(.cost)) as $swtot
+        | ($sw | map(select(.output >= 50000))) as $elig
+        | (["claude", "codex"] | map(. as $a | ($elig | map(select(.agent == $a))) as $g
+            | {key: $a, value: (if ($g | length) >= 5 then ($g | map(.cost / (.output / 1000)) | median) else null end)})
+            | from_entries) as $base
+        | def per1k: .cost / (.output / 1000);
+          def flagged: (.output >= 50000) and ($base[.agent] != null) and (per1k > 2 * $base[.agent]);
+          ($sw | map(select(flagged))) as $fl
+        | ($sw | map(select(.output >= 50000 and (flagged | not)))) as $rest
+        | if ($sw | length) == 0 then
+            "_No session detail archived for this week (session rows exist only from when session archiving started)._"
+          else
+            ( "Sessions are dated by the day they last ran and show whole-session totals. Ids are stable hashes: the same id in another week is the same session. No project names are stored.",
+              "",
+              "| # | Session | Profile | Cost | Share | Tokens | Span | Output | $ / 1k out | Model |",
+              "|--:|---|---|---:|---:|---:|---:|---:|---:|---|",
+              ( $sw[0:5] | to_entries[] | .key as $i | .value as $s
+                | "| \($i + 1) | `\($s.sid)` | \($s.profile) | \($s.cost | usd) | \(if $swtot == 0 then "n/a" else (($s.cost / $swtot * 100) | f1) + "%" end) | \($s.total | mtok) | \(if $s.hours == null then "—" else ($s.hours | f1) + "h" end) | \($s.output | ktok) | \(if $s.output > 0 then (($s | per1k | usd) + (if ($s | flagged) then " ⚠" else "" end)) else "—" end) | \($s.model) |" ),
+              "",
+              "Top 5 = \($sw[0:5] | sum(.cost) | usd) = \(if $swtot == 0 then "n/a" else ((($sw[0:5] | sum(.cost)) / $swtot * 100) | f1) + "%" end) of the \($sw | length) sessions (\($swtot | usd)) that ended this week.",
+              "",
+              ( ["claude", "codex"][] as $a | select($base[$a] != null)
+                | "- Median cost per 1k output tokens, \($a): \($base[$a] | usd) (sessions with at least 50k output tokens)." ),
+              ( if ($base.claude == null and $base.codex == null) then
+                  "- Too few sessions with 50k or more output tokens this week to judge efficiency."
+                elif ($fl | length) == 0 then
+                  "- No session stood out: none cost more than 2x the median per output token."
+                else
+                  "- ⚠ \($fl | length) session(s) cost more than 2x the median per output token: together \($fl | sum(.cost) | usd) (\((($fl | sum(.cost)) / $swtot * 100) | f1)% of the week). They read about \((($fl | sum(.cacheRead)) / ($fl | sum(.output))) | round)x more context than they wrote (other sessions: \(if ($rest | length) == 0 then "n/a" else ((($rest | sum(.cacheRead)) / ($rest | sum(.output))) | round | tostring) + "x" end)). A long context is re-read on every turn, so running /compact or /clear when the task changes, or splitting the work, is what brings this down."
+                end )
+            )
+          end ),
+      "",
       "## Cache and busiest day",
       "",
       ( $profiles[] as $p
@@ -359,6 +516,9 @@ render_digest() { # any-date-in-target-week
       ( $st.profiles // {} | to_entries[]
         | select((.value.status // "ok") != "ok")
         | "- ⚠ \(.key): \(.value.status) — \(.value.message // "see log")" ),
+      ( $st.profiles // {} | to_entries[]
+        | select((.value.sessions.status // "ok") == "failed")
+        | "- ⚠ \(.key): session detail could not be archived (\(.value.sessions.message // "see log")), so Top sessions may be incomplete." ),
       "- Claude transcripts older than 30 days are pruned by Claude Code; history before this archive started cannot be recovered."
   ' >"$REPORTS/$label.md.tmp.$$"
   mv "$REPORTS/$label.md.tmp.$$" "$REPORTS/$label.md"
