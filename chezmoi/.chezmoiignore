@@ -22,6 +22,12 @@
 .config/Cursor/
 .config/ruff/
 
+# Optional terminal recovery helpers (desktop-only).
+.local/bin/agent-resume
+.local/bin/tmux
+.local/bin/tmux-build-patched
+.config/tmux/tmux-3.7d-backport.patch
+
 # herdr agent multiplexer (desktop-only; servers use tmux)
 .config/herdr/
 

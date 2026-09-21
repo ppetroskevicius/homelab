@@ -1,0 +1,158 @@
+--- a/CHANGES
++++ b/CHANGES
+@@ -1,3 +1,9 @@
++CHANGES FROM 3.7c TO 3.7d
++
++* Do not use stale pointers to windows when panes in modes are joined.
++
++* Fix problem where list-keys output can go to view mode instead of stdout.
++
+ CHANGES FROM 3.7b TO 3.7c
+ 
+ * Build with jemalloc on macOS to avoid what appears to be a bug in calloc
+--- a/cmd-list-keys.c
++++ b/cmd-list-keys.c
+@@ -237,7 +237,7 @@ cmd_list_keys_exec(struct cmd *self, struct cmdq_item *item)
+ 		cmd_list_keys_format_add_key_binding(ft, l[i], prefix);
+ 
+ 		line = format_expand(ft, template);
+-		if ((single && tc != NULL) || n == 1)
++		if (single && tc != NULL && (~tc->flags & CLIENT_CONTROL))
+ 			status_message_set(tc, -1, 1, 0, 0, "%s", line);
+ 		else if (*line != '\0')
+ 			cmdq_print(item, "%s", line);
+--- a/grid.c
++++ b/grid.c
+@@ -1538,7 +1538,7 @@ grid_wrap_position(struct grid *gd, u_int px, u_int py, u_int *wx, u_int *wy)
+ void
+ grid_unwrap_position(struct grid *gd, u_int *px, u_int *py, u_int wx, u_int wy)
+ {
+-	u_int	yy, ay = 0;
++	u_int	yy, ay = 0, ey = gd->hsize + gd->sy - 1;
+ 
+ 	for (yy = 0; yy < gd->hsize + gd->sy - 1; yy++) {
+ 		if (ay == wy)
+@@ -1552,7 +1552,7 @@ grid_unwrap_position(struct grid *gd, u_int *px, u_int *py, u_int wx, u_int wy)
+ 	 * until we find the end or the line now containing wx.
+ 	 */
+ 	if (wx == UINT_MAX) {
+-		while (gd->linedata[yy].flags & GRID_LINE_WRAPPED)
++		while (yy < ey && gd->linedata[yy].flags & GRID_LINE_WRAPPED)
+ 			yy++;
+ 		wx = gd->linedata[yy].cellused;
+ 	} else {
+--- a/popup.c
++++ b/popup.c
+@@ -110,7 +110,8 @@ popup_free(struct popup_data *pd)
+ 
+ 	if (pd->job != NULL)
+ 		job_free(pd->job);
+-	input_free(pd->ictx);
++	if (pd->ictx != NULL)
++		input_free(pd->ictx);
+ 
+ 	free(pd->or[0].ranges);
+ 	free(pd->or[1].ranges);
+@@ -278,6 +279,7 @@ popup_check_cb(struct client* c, void *data, u_int px, u_int py, u_int nx)
+ 				k++;
+ 			}
+ 		}
++		r->used = k;
+ 		return (r);
+ 	}
+ 
+--- a/screen-redraw.c
++++ b/screen-redraw.c
+@@ -1201,6 +1201,8 @@ screen_redraw_get_visible_ranges(struct window_pane *base_wp, int px,
+ 
+ 		for (i = 0; i < r->used; i++) {
+ 			ri = &r->ranges[i];
++			if (ri->nx == 0)
++				continue;
+ 			if (w->sb_pos == PANE_SCROLLBARS_LEFT) {
+ 				if (wp->xoff > sb_w)
+ 					lb = wp->xoff - 1 - sb_w;
+@@ -1218,6 +1220,8 @@ screen_redraw_get_visible_ranges(struct window_pane *base_wp, int px,
+ 				rb = wp->xoff + wp->sx + sb_w;
+ 			if (rb > (int)w->sx)
+ 				rb = w->sx - 1;
++			if (lb > rb)
++				continue;
+ 
+ 			sx = ri->px;
+ 			ex = sx + ri->nx - 1;
+--- a/window-client.c
++++ b/window-client.c
+@@ -73,6 +73,7 @@ const struct window_mode window_client_mode = {
+ 
+ struct window_client_itemdata {
+ 	struct client	*c;
++	char		*ttyname;
+ };
+ 
+ struct window_client_modedata {
+@@ -110,6 +111,7 @@ static void
+ window_client_free_item(struct window_client_itemdata *item)
+ {
+ 	server_client_unref(item->c);
++	free(item->ttyname);
+ 	free(item);
+ }
+ 
+@@ -137,6 +139,7 @@ window_client_build(void *modedata, struct sort_criteria *sort_crit,
+ 
+ 		item = window_client_add_item(data);
+ 		item->c = l[i];
++		item->ttyname = xstrdup(l[i]->ttyname);
+ 
+ 		l[i]->references++;
+ 	}
+@@ -381,7 +384,7 @@ window_client_key(struct window_mode_entry *wme, struct client *c,
+ 		break;
+ 	case '\r':
+ 		item = mode_tree_get_current(mtd);
+-		mode_tree_run_command(c, NULL, data->command, item->c->ttyname);
++		mode_tree_run_command(c, NULL, data->command, item->ttyname);
+ 		finished = 1;
+ 		break;
+ 	}
+--- a/window-tree.c
++++ b/window-tree.c
+@@ -254,14 +254,17 @@ window_tree_build_window(struct session *s, struct winlink *wl,
+ 	u_int				 n, i;
+ 	int				 expanded;
+ 	struct format_tree		*ft;
++	uint64_t			 tag = FORMAT_NONE;
+ 
+ 	item = window_tree_add_item(data);
+ 	item->type = WINDOW_TREE_WINDOW;
+ 	item->session = s->id;
+ 	item->winlink = wl->idx;
+ 	item->pane = -1;
+ 
+-	ft = format_create(NULL, NULL, FORMAT_PANE|wl->window->active->id, 0);
++	if (wl->window != NULL && wl->window->active != NULL)
++		tag = FORMAT_PANE|wl->window->active->id;
++	ft = format_create(NULL, NULL, tag, 0);
+ 	format_defaults(ft, NULL, s, wl, NULL);
+ 	text = format_expand(ft, data->format);
+ 	xasprintf(&name, "%u", wl->idx);
+@@ -313,14 +316,17 @@ window_tree_build_session(struct session *s, void *modedata,
+ 	u_int				 n, i, empty;
+ 	int				 expanded;
+ 	struct format_tree		*ft;
++	uint64_t			 tag = FORMAT_NONE;
+ 
+ 	item = window_tree_add_item(data);
+ 	item->type = WINDOW_TREE_SESSION;
+ 	item->session = s->id;
+ 	item->winlink = -1;
+ 	item->pane = -1;
+ 
+-	ft = format_create(NULL, NULL, FORMAT_PANE|wl->window->active->id, 0);
++	if (wl != NULL && wl->window != NULL && wl->window->active != NULL)
++		tag = FORMAT_PANE|wl->window->active->id;
++	ft = format_create(NULL, NULL, tag, 0);
+ 	format_defaults(ft, NULL, s, NULL, NULL);
+ 	text = format_expand(ft, data->format);
+ 	format_free(ft);

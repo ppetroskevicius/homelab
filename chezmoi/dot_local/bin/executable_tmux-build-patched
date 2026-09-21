@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Build tmux 3.7c plus upstream release_3.7d at e9634d40749a5ae330aabf5aa46a81505b094a6b.
+# Explicit command only: chezmoi apply deploys this script but never runs it.
+set -euo pipefail
+for tool in gh brew python3 make patch; do
+    command -v "$tool" >/dev/null || { echo "Missing dependency: $tool" >&2; exit 1; }
+done
+patch_file="$HOME/.config/tmux/tmux-3.7d-backport.patch"
+[[ -r "$patch_file" ]] || { echo "Apply the chezmoi tmux files first." >&2; exit 1; }
+# These dependencies must already be installed; do not upgrade them implicitly.
+event_prefix="$(brew --prefix libevent)"
+curses_prefix="$(brew --prefix ncurses)"
+utf8_prefix="$(brew --prefix utf8proc)"
+jemalloc_prefix="$(brew --prefix jemalloc)"
+build_dir="$(mktemp -d "${TMPDIR:-/tmp}/tmux-build.XXXXXX")"
+trap 'rm -rf "$build_dir"' EXIT
+gh release download 3.7c --repo tmux/tmux --pattern tmux-3.7c.tar.gz --dir "$build_dir"
+python3 - "$build_dir/tmux-3.7c.tar.gz" <<'PY'
+import hashlib, sys
+from pathlib import Path
+expected = '7c60cae9a0e25288e2e24750aafc9e8800fc7fd4555e447e1b29ee4201cfb3bf'
+if hashlib.sha256(Path(sys.argv[1]).read_bytes()).hexdigest() != expected:
+    raise SystemExit('Release archive checksum mismatch')
+PY
+tar -xzf "$build_dir/tmux-3.7c.tar.gz" -C "$build_dir"
+cd "$build_dir/tmux-3.7c"
+patch --batch -p1 < "$patch_file"
+./configure --enable-utf8proc --enable-jemalloc \
+    JEMALLOC_CFLAGS="-I$jemalloc_prefix/include" \
+    JEMALLOC_LIBS="-L$jemalloc_prefix/lib -ljemalloc" \
+    CPPFLAGS="-I$event_prefix/include -I$curses_prefix/include -I$utf8_prefix/include" \
+    LDFLAGS="-L$event_prefix/lib -L$curses_prefix/lib -L$utf8_prefix/lib"
+make -j4
+install_dir="$HOME/.local/libexec/tmux-3.7c-patched"
+mkdir -p "$install_dir"
+install -m 755 tmux "$install_dir/tmux.new"
+mv "$install_dir/tmux.new" "$install_dir/tmux"
+printf '%s\n' '3.7c + release_3.7d e9634d40749a5ae330aabf5aa46a81505b094a6b' > "$install_dir/BUILD"
+printf '%s\n' "Installed $install_dir/tmux. Existing servers were not restarted."
+printf '%s\n' 'The binary reports 3.7c; BUILD identifies the upstream backport.'

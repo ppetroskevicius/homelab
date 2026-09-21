@@ -21,8 +21,8 @@ save_to_clipboard = true
 
 [terminal]
 osc52 = "CopyPaste"
-shell.program = "{{ lookPath "tmux" }}"
-shell.args = ["new-session", "-A", "-s", "main"]
+shell.program = "{{ .chezmoi.homeDir }}/.local/bin/tmux"
+shell.args = ["new-session", "-A", "-s", {{ default "main" (get . "tmux_session") | toJson }}]
 
 [keyboard]
 bindings = [

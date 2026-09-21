@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Keep the optional patched build outside Homebrew's managed bin directory.
+set -euo pipefail
+patched="$HOME/.local/libexec/tmux-3.7c-patched/tmux"
+if [[ -x "$patched" && ! -e "$HOME/.config/tmux/use-system" ]]; then
+    exec "$patched" "$@"
+fi
+if command -v brew >/dev/null 2>&1; then
+    keg="$(brew --prefix tmux)"
+    exec "$keg/bin/tmux" "$@"
+fi
+for candidate in /usr/bin/tmux /bin/tmux /usr/local/bin/tmux; do
+    if [[ -x "$candidate" && ! "$candidate" -ef "$0" ]]; then
+        exec "$candidate" "$@"
+    fi
+done
+printf '%s\n' 'tmux is not installed; install the system package or run tmux-build-patched.' >&2
+exit 127

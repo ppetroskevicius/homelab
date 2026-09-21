@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+"""Resume exact agent conversations; save hook for tmux-resurrect. No latest-session guessing."""
+import hashlib, json, os, re, shlex, shutil, sqlite3, subprocess, sys
+from pathlib import Path
+BASE = Path.home()/'.local/state/tmux-agent-recovery'
+SPEC = BASE/'specs'
+UUID = re.compile(r'^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$')
+SELF = Path.home()/'.local/bin/agent-resume'
+
+def run(args):
+    return subprocess.check_output(args, text=True, timeout=12, stderr=subprocess.DEVNULL)
+
+def processes():
+    return {int(a[0]): (int(a[1]),a[2]) for line in run(['ps','-axo','pid=,ppid=,comm=']).splitlines() if len(a:=line.split(None,2))==3}
+
+def discover(procs):
+    found={}
+    for home in [Path.home()/'.claude-personal',Path.home()/'.claude']:
+        for f in (home/'sessions').glob('*.json'):
+            try:
+                d=json.loads(f.read_text()); pid=d['pid']; sid=d['sessionId']
+                if pid not in procs or Path(procs[pid][1]).name!='claude' or not UUID.fullmatch(sid): continue
+                found[pid]={'agent':'claude','id':sid,'home':str(home),'cwd':d['cwd']}
+            except (ValueError,KeyError,OSError): continue
+    for pid,(_,comm) in procs.items():
+        if Path(comm).name!='codex': continue
+        try: files=run(['lsof','-a','-p',str(pid),'-Fn']).splitlines()
+        except (subprocess.SubprocessError,OSError): continue
+        candidates=[]
+        for line in files:
+            if not line.startswith('n') or '/thread-writer-locks/' not in line:continue
+            lock=Path(line[1:]);sid=lock.stem;home=lock.parent.parent
+            if not UUID.fullmatch(sid):continue
+            try:
+                with sqlite3.connect(f'file:{home}/state_5.sqlite?mode=ro',uri=True) as db:
+                    row=db.execute('select cwd,source from threads where id=?',(sid,)).fetchone()
+                if row and row[1]=='cli':candidates.append({'agent':'codex','id':sid,'home':str(home),'cwd':row[0]})
+            except sqlite3.Error:continue
+        if len(candidates)==1:found[pid]=candidates[0]
+    return found
+
+def below(pid, root, procs):
+    seen=set()
+    while pid in procs and pid not in seen:
+        if pid==root:return True
+        seen.add(pid);pid=procs[pid][0]
+    return False
+
+def store(spec):
+    SPEC.mkdir(parents=True,exist_ok=True,mode=0o700)
+    key=hashlib.sha256(json.dumps(spec,sort_keys=True).encode()).hexdigest()
+    dest=SPEC/(key+'.json')
+    if not dest.exists():
+        tmp=dest.with_suffix('.tmp');tmp.write_text(json.dumps(spec,indent=2)+'\n');tmp.chmod(0o600);tmp.replace(dest)
+    return key
+
+def save(path):
+    procs=processes(); agents=discover(procs)
+    fmt='#{session_name}\t#{window_index}\t#{pane_index}\t#{pane_pid}'
+    panes={}
+    for line in run(['tmux','list-panes','-a','-F',fmt]).splitlines():
+        session,win,pane,pid=line.split('\t'); matches=[s for p,s in agents.items() if below(p,int(pid),procs)]
+        if len(matches)==1:panes[(session,win,pane)]=matches[0]
+    lines=[]; saved=[]
+    for line in path.read_text().splitlines():
+        fields=line.split('\t')
+        if fields[0]=='pane' and len(fields)>=11:
+            spec=panes.get((fields[1],fields[2],fields[5]))
+            if spec:
+                key=store(spec)
+                fields[9]='agent-resume';fields[10]=':'+shlex.join([str(SELF),key])
+                saved.append({'pane':':'.join([fields[1],fields[2],fields[5]]),**spec})
+        lines.append('\t'.join(fields))
+    tmp=path.with_suffix(path.suffix+'.agents-tmp');tmp.write_text('\n'.join(lines)+'\n');tmp.replace(path)
+    BASE.mkdir(parents=True,exist_ok=True)
+    (BASE/'last-save.json').write_text(json.dumps({'layout':str(path),'agents':saved},indent=2)+'\n')
+
+def resume(key):
+    if not re.fullmatch(r'[0-9a-f]{64}',key):raise ValueError('Invalid recovery key')
+    spec=json.loads((SPEC/(key+'.json')).read_text())
+    if not UUID.fullmatch(spec['id']):raise ValueError('Invalid conversation ID')
+    for active in discover(processes()).values():
+        if (active['agent'],active['id'],active['home'])==(spec['agent'],spec['id'],spec['home']):
+            print('This conversation is already running; skipping duplicate resume.');return
+    env=os.environ.copy();os.chdir(spec['cwd'])
+    # A recovery command may be invoked from a non-interactive agent host.
+    # Its NO_COLOR must not leak into a restored interactive terminal.
+    env.pop('NO_COLOR', None)
+    if spec['agent']=='claude':
+        if spec['home']==str(Path.home()/'.claude'):env.pop('CLAUDE_CONFIG_DIR',None)
+        else:env['CLAUDE_CONFIG_DIR']=spec['home']
+        args=[shutil.which('claude') or 'claude','--resume',spec['id']]
+    elif spec['agent']=='codex':
+        env['CODEX_HOME']=spec['home'];args=[shutil.which('codex') or 'codex','resume',spec['id'],'-C',spec['cwd']]
+    else:raise ValueError('Unknown agent')
+    os.execvpe(args[0],args,env)
+
+if __name__=='__main__':
+    try:
+        if len(sys.argv)==3 and sys.argv[1]=='--save':save(Path(sys.argv[2]))
+        elif len(sys.argv)==2:resume(sys.argv[1])
+        else:raise ValueError('Usage: agent-resume KEY | --save LAYOUT_FILE')
+    except Exception as e:
+        print('Agent recovery:',e,file=sys.stderr);sys.exit(1)
