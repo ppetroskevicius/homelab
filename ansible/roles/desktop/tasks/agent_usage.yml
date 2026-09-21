@@ -1,0 +1,86 @@
+---
+# Archive Claude Code / Codex usage with ccusage, on a schedule (macOS).
+#
+# Claude Code prunes its own transcripts after 30 days and ccusage only reads what is on disk, so this
+# is an archive job, not a report job. See docs/AGENT_USAGE.md for the why, the schedule, and recovery.
+#
+# The scheduler is a per-user LaunchAgent. community.general.launchd is deliberately NOT used: it treats
+# "loaded, no PID, exit 0" as stopped, so `state: started` would `launchctl start` an idle calendar job
+# (plus a 5s sleep) on every run and never be idempotent. `launchctl print` is the state check instead.
+#
+# Variables (defaults/main.yml): agent_usage_label, agent_usage_hour, agent_usage_minute
+
+- name: Install ccusage
+  community.general.homebrew:
+    name: ccusage
+    state: present
+
+# No `mode` here on purpose (hence the noqa): these are shared locations this role does not own, so
+# create them if missing but never change an existing mode. A forced mode is exactly what a --check
+# showed would have loosened ~/Library/Logs from 0700 to 0755. (~/Library/Logs, also written to by the
+# job, always exists on macOS, so it is not managed at all.)
+- name: Ensure shared user directories exist  # noqa: risky-file-permissions
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - "{{ ansible_facts.env.HOME }}/.local/bin"
+    - "{{ ansible_facts.env.HOME }}/Library/LaunchAgents"
+
+# The archive holds usage/cost data for every Claude/Codex profile, so keep it owner-only.
+- name: Create the private agent-usage data directory
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/.local/share/agent-usage"
+    state: directory
+    mode: "0700"
+
+- name: Deploy agent-usage-snapshot
+  ansible.builtin.copy:
+    src: agent-usage-snapshot
+    dest: "{{ ansible_facts.env.HOME }}/.local/bin/agent-usage-snapshot"
+    mode: "0755"
+
+# One-time backfill of everything still on disk. The scheduled job only looks back 14 days, so without
+# this the archive would start empty and Claude history that is about to be pruned would be lost.
+# (The script also backfills any profile that has no archived rows by itself; doing it here just makes
+# a failure visible in Ansible's output.) `creates` makes this run exactly once. For a truncated
+# archive that still has rows, run by hand:  agent-usage-snapshot --backfill
+- name: Backfill the usage archive (first install only)
+  ansible.builtin.command:
+    cmd: "{{ ansible_facts.env.HOME }}/.local/bin/agent-usage-snapshot --backfill --no-notify"
+    creates: "{{ ansible_facts.env.HOME }}/.local/share/agent-usage/history.ndjson"
+  environment:
+    PATH: "/opt/homebrew/bin:/usr/bin:/bin"
+
+- name: Deploy agent-usage LaunchAgent plist
+  ansible.builtin.template:
+    src: com.homelab.agent-usage.plist.j2
+    dest: "{{ ansible_facts.env.HOME }}/Library/LaunchAgents/{{ agent_usage_label }}.plist"
+    mode: "0644"
+  register: agent_usage_plist
+
+# Read-only, so it is safe (and useful) under --check too.
+- name: Check whether the agent-usage job is loaded
+  ansible.builtin.command:
+    cmd: "launchctl print gui/{{ ansible_facts['user_uid'] }}/{{ agent_usage_label }}"
+  register: agent_usage_loaded
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+# A changed plist only takes effect after a bootout + bootstrap; launchd caches the loaded definition.
+- name: Unload agent-usage job so the new plist takes effect
+  ansible.builtin.command:
+    cmd: "launchctl bootout gui/{{ ansible_facts['user_uid'] }}/{{ agent_usage_label }}"
+  changed_when: true
+  when:
+    - agent_usage_plist is changed
+    - agent_usage_loaded.rc == 0
+
+# bootstrap needs the user's GUI session (gui/<uid>); it fails over a bare SSH session with no login.
+# RunAtLoad makes this fire one normal snapshot immediately, after the backfill above.
+- name: Load agent-usage job
+  ansible.builtin.command:
+    cmd: "launchctl bootstrap gui/{{ ansible_facts['user_uid'] }} {{ ansible_facts.env.HOME }}/Library/LaunchAgents/{{ agent_usage_label }}.plist"
+  changed_when: true
+  when: agent_usage_plist is changed or agent_usage_loaded.rc != 0

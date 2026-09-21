@@ -49,3 +49,9 @@
 - name: Configure rclone sync with Google Drive
   ansible.builtin.include_tasks: rclone_sync.yml
   when: not (is_work_mac | default(false))
+
+# Not gated on is_work_mac: it is the only managed Mac.
+# macOS only (Homebrew + launchd); a Linux desktop would need a systemd user timer instead.
+- name: Archive Claude Code / Codex usage with ccusage
+  ansible.builtin.include_tasks: agent_usage.yml
+  when: ansible_facts['os_family'] == "Darwin"

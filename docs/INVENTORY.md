@@ -177,6 +177,7 @@ This document maps all packages, tools, and configurations to the 5 machine type
 | --------------- | ------------- | ----------- | ---------------- | ---------- | ------ | --------------------- |
 | GitHub CLI (gh) | ✗             | ✗           | ✗                | ✗          | ✓      | GitHub command line   |
 | gh-stack        | ✗             | ✗           | ✗                | ✗          | ✓      | Stacked PRs (gh ext)  |
+| ccusage + agent-usage job | ✗   | ✗           | ✗                | ✗          | ✓      | macOS only: daily Claude Code/Codex usage archive, see [AGENT_USAGE.md](AGENT_USAGE.md) |
 | Yazi            | ✗             | ✗           | ✗                | ✗          | ✓      | Terminal file manager |
 | Playwright      | ✗             | ✗           | ✗                | ✗          | ✓      | Browser automation    |
 

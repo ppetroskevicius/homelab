@@ -167,7 +167,7 @@ The main playbook currently uses these roles:
 - `storage` - ZFS, NFS exports/mounts, local storage mounts
 - `gpu_passthrough` - IOMMU and VFIO setup on enabled hypervisors
 - `container` - Docker and K3s
-- `desktop` - Sway, desktop apps, audio, fonts, rclone sync
+- `desktop` - Sway, desktop apps, audio, fonts, rclone sync, Claude Code/Codex usage archive (macOS, see [AGENT_USAGE.md](AGENT_USAGE.md))
 - `dev_languages` - Rust, Python tooling, mise, Go, Java/Kotlin, Deno
 - `cloud_tools` - AWS/GCP CLIs, Terraform, GitHub CLI + gh-stack extension, Playwright/Firebase utilities
 
