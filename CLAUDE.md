@@ -90,7 +90,29 @@ Target Group: `vm_k8s_node`, `vm_service`
 
 ---
 
-## 6. Related Documentation
+## 6. Public Repo: No Work-Specific Content
+
+This repo is **public**. Before anything leaves this machine (`git push`, merge to `main`, PR), check that
+nothing work-specific is in the code, comments, docs, config, or commit messages being published:
+
+- Employer/company names, work product or internal project names, internal hostnames/URLs/repo names,
+  customer or coworker names.
+- Credentials of any kind (API tokens, keys, private-key blocks, JWTs).
+- Claude/agent config from `~/.claude` (deliberately not tracked; ask before adding anything under
+  `chezmoi/dot_claude/`).
+
+How to check:
+
+- Scan the **added lines of the whole range being pushed** (`git diff <remote-tip>..<local-tip>`), not just
+  `HEAD` — pushing publishes every commit in the range, and history is hard to retract.
+- The concrete list of names to scan for is kept in private Claude memory, not in this file (writing them
+  here would itself leak them).
+- If something work-specific turns up, stop and ask before pushing; rewrite or drop the commit rather than
+  pushing a follow-up fix.
+
+---
+
+## 7. Related Documentation
 
 For detailed information on specific aspects of the homelab:
 
