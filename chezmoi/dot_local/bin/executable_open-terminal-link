@@ -1,0 +1,90 @@
+#!/usr/bin/env python3
+"""Open terminal HTTP links and GitHub references without shell evaluation."""
+import argparse
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+from urllib.parse import urlsplit
+
+PART = r'[A-Za-z0-9_.-]+'
+QUALIFIED = re.compile(rf'({PART})/({PART})#([1-9][0-9]*)')
+BARE = re.compile(r'(?:PR|Issue)?#([1-9][0-9]*)', re.IGNORECASE)
+
+
+def github_repository(cwd):
+    # Remote names and URLs come from the clicked pane, never the active pane.
+    result = subprocess.run(['git', '-C', str(cwd), 'remote', 'get-url', 'origin'],
+                            capture_output=True, text=True, timeout=5)
+    if result.returncode:
+        raise ValueError('No origin repository here. Use an owner/repo#number reference or full URL.')
+    remote = result.stdout.strip()
+    if remote.startswith('git@github.com:'):
+        path = remote[len('git@github.com:'):]
+    else:
+        parsed = urlsplit(remote)
+        if parsed.hostname != 'github.com' or parsed.scheme not in ('https', 'ssh'):
+            raise ValueError('Origin is not github.com. Use a full GitHub URL.')
+        path = parsed.path.lstrip('/')
+    path = path.removesuffix('.git').rstrip('/')
+    if not re.fullmatch(rf'{PART}/{PART}', path):
+        raise ValueError('Unrecognized GitHub origin. Use a full URL.')
+    return path
+
+
+def destination(text, cwd=None, hyperlink=''):
+    value = (hyperlink or text).strip()
+    # Terminal words often include Markdown/list punctuation around a link.
+    if not hyperlink:
+        value = value.lstrip('([<`\"').rstrip('.,;:!?]}>`\"')
+    while not hyperlink and value.endswith(')') and value.count(')') > value.count('('):
+        value = value[:-1]
+    parsed = urlsplit(value)
+    if parsed.scheme in ('http', 'https') and parsed.hostname:
+        if any(ord(c) < 32 or c.isspace() for c in value):
+            raise ValueError('Malformed URL.')
+        return value
+    match = QUALIFIED.fullmatch(value)
+    if match:
+        owner, repo, number = match.groups()
+        return f'https://github.com/{owner}/{repo}/issues/{number}'
+    match = BARE.fullmatch(value)
+    if match and cwd:
+        return f'https://github.com/{github_repository(cwd)}/issues/{match[1]}'
+    raise ValueError('Click a web link, owner/repo#123, or #123 inside a GitHub checkout.')
+
+
+def browser_command(url):
+    if sys.platform == 'darwin':
+        return ['/usr/bin/open', '-a', 'Google Chrome', url]
+    chrome = shutil.which('google-chrome') or shutil.which('chromium') or shutil.which('chromium-browser')
+    if chrome:
+        return [chrome, url]
+    return ['xdg-open', url]
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--cwd', type=Path)
+    parser.add_argument('--hyperlink', default='')
+    parser.add_argument('--print-url', action='store_true', help='Resolve without opening the browser')
+    parser.add_argument('text', nargs='?', default='')
+    args = parser.parse_args()
+    try:
+        url = destination(args.text, args.cwd, args.hyperlink)
+        if args.print_url:
+            print(url)
+        else:
+            subprocess.run(browser_command(url), check=True)
+    except (ValueError, subprocess.SubprocessError, OSError) as error:
+        message = str(error)
+        print(message, file=sys.stderr)
+        if not args.print_url and shutil.which('tmux'):
+            subprocess.run(['tmux', 'display-message', '-d', '5000', message], check=False)
+        return 1
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

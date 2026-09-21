@@ -24,6 +24,7 @@
 
 # Optional terminal recovery helpers (desktop-only).
 .local/bin/agent-resume
+.local/bin/open-terminal-link
 .local/bin/tmux
 .local/bin/tmux-build-patched
 .config/tmux/tmux-3.7d-backport.patch
