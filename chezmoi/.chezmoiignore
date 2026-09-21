@@ -25,6 +25,9 @@
 # herdr agent multiplexer (desktop-only; servers use tmux)
 .config/herdr/
 
+# Claude Code status line (desktop-only)
+.claude/
+
 # Cloud CLI configs (desktop-only)
 .aws/
 .config/rclone/

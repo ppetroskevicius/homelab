@@ -24,3 +24,7 @@ ssh-agent.*
 # OS files
 .DS_Store
 Thumbs.db
+
+# Local agent usage archives (Claude Code / Codex usage snapshots). Live outside the repo; never commit.
+agent-usage/
+history.ndjson
