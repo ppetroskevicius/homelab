@@ -169,9 +169,8 @@ chezmoi diff ~/.config/alacritty/alacritty.toml   # check for drift
 chezmoi apply                                      # deploy
 ```
 
-`shell.program` uses `{{ lookPath "tmux" }}` so the tmux path resolves per
-machine rather than being hardcoded to `/opt/homebrew/bin/tmux` — keep it
-templated so the config stays portable across macOS and Linux.
+`shell.program` uses the managed `~/.local/bin/tmux` launcher. See
+[tmux recovery](TMUX_RECOVERY.md) for its patched build and Homebrew fallback.
 
 Themes come from the `alacritty/alacritty-theme` repo, cloned once by
 `chezmoi/run_once_alacritty_themes.sh`. `general.import` in the config depends
@@ -186,3 +185,40 @@ natural fallback: notarized, in Homebrew, self-updating (`auto_updates`). It
 would need a config migration (keybinds, font, opacity, tmux-as-shell) and a
 new chezmoi template. Not currently needed — building from source works and has
 better provenance.
+
+## Opening terminal links
+
+On macOS, these bindings open Google Chrome:
+
+| Gesture | Target |
+|---|---|
+| Cmd+Shift-click | Full HTTP(S) URL, embedded hyperlink, or `owner/repo#123` |
+| Cmd+Shift+O, then type the displayed hint letters | Choose a visible link without the mouse |
+| Option-click on `#123` | Issue or PR in the clicked tmux pane's GitHub repository |
+
+Shift lets Alacritty handle a click even when tmux captures mouse events; see
+[Alacritty hints documentation](https://alacritty.org/config-alacritty.html#hints).
+Embedded hyperlinks also need tmux's `hyperlinks` terminal feature, configured
+for Alacritty and xterm-256color. Existing clients may need to detach and reattach
+once after enabling that feature. The server and conversations keep running.
+
+The managed `open-terminal-link` helper resolves bare numbers using the clicked
+pane's working directory and its `origin` remote, including Git worktrees. GitHub
+issues and PRs share numbering; GitHub redirects the issue route for PR numbers.
+If the pane is outside a GitHub checkout, use a full URL or `owner/repo#123`.
+References to a different repository must also be qualified. Ticket keys from
+other trackers and numbers without `#` need a full URL.
+
+Option-click also recognizes embedded hyperlinks. Tmux word selection uses spaces
+as separators so double-clicking preserves complete URLs and `#references`.
+Only HTTP(S) destinations are opened, and text is passed as a literal browser
+argument. Linux uses Chrome/Chromium when installed, otherwise `xdg-open`;
+substitute Super for Cmd and Alt for Option.
+
+Validate resolution without opening a browser:
+
+```bash
+~/.local/bin/open-terminal-link --print-url 'example/repo#123'
+~/.local/bin/open-terminal-link --print-url --cwd "$PWD" '#123'
+python3 -m unittest discover -s tests -p 'test_terminal_links.py'
+```

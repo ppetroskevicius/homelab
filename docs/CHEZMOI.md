@@ -226,3 +226,7 @@ chezmoi managed
 # See what's ignored
 chezmoi ignored
 ```
+
+## Terminal and agent recovery
+
+See [TMUX_RECOVERY.md](TMUX_RECOVERY.md) for the optional pinned tmux build, exact Claude/Codex conversation restoration, pane titles, and color handling. Recovery snapshots and account data stay local; only portable configuration and code are tracked.

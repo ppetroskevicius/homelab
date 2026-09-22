@@ -21,8 +21,8 @@ save_to_clipboard = true
 
 [terminal]
 osc52 = "CopyPaste"
-shell.program = "{{ lookPath "tmux" }}"
-shell.args = ["new-session", "-A", "-s", "main"]
+shell.program = "{{ .chezmoi.homeDir }}/.local/bin/tmux"
+shell.args = ["new-session", "-A", "-s", {{ default "main" (get . "tmux_session") | toJson }}]
 
 [keyboard]
 bindings = [
@@ -31,3 +31,12 @@ bindings = [
   { key = "V", mods = "Super", action = "Paste" },
   { key = "Return", mods = "Shift", chars = "\u001b\r" },
 ]
+
+# Shift bypasses tmux mouse reporting; Super is Command on macOS.
+[[hints.enabled]]
+regex = '(https?://[^\s<>"\x00-\x1f]+|[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#[1-9][0-9]*)'
+hyperlinks = true
+post_processing = true
+command = { program = "{{ .chezmoi.homeDir }}/.local/bin/open-terminal-link" }
+mouse = { enabled = true, mods = "Super|Shift" }
+binding = { key = "O", mods = "Super|Shift" }

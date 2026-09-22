@@ -1,0 +1,2 @@
+# Unified patches contain significant leading context spaces and tabs.
+chezmoi/dot_config/tmux/*.patch -whitespace
