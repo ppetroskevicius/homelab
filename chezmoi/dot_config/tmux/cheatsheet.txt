@@ -93,11 +93,13 @@
    y               Copy to clipboard
    q / Escape      Exit copy mode
 
- TERMINAL LINKS (macOS Alacritty; opens Chrome)
+ TERMINAL LINKS (macOS Alacritty; opens Chrome; no prefix needed)
    Cmd+Shift-click URL, embedded hyperlink, or owner/repo#123
    Cmd+Shift+O     Show keyboard hints; type hint letters to open
    Option-click   #123 in the clicked pane's GitHub origin repository
                    Cross-repository references need owner/repo#123 or URL
+   Hold Cmd+Shift while clicking so Alacritty handles the click, not tmux.
+   Linked text not opening? Detach (` + d), then reopen Alacritty once.
 
  GIT WORKTREES
    ` + g           List/switch worktrees (fzf popup)
