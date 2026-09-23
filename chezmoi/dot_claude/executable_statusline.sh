@@ -32,6 +32,20 @@ MODEL=$(echo "$INPUT" | jq -r '(.model.display_name // "") | ascii_downcase |
   elif test("haiku") then "H"
   else "?" end')
 
+# Model effort: the status line payload has no per-session effort field (upstream issue #36187), so
+# fall back to the configured default in settings.local.json (overrides) or settings.json.
+EFFORT_RAW=$(jq -r '.effortLevel // empty' "$CFG_DIR/settings.local.json" 2>/dev/null)
+[ -n "$EFFORT_RAW" ] || EFFORT_RAW=$(jq -r '.effortLevel // empty' "$CFG_DIR/settings.json" 2>/dev/null)
+case "$(echo "$EFFORT_RAW" | tr 'A-Z' 'a-z')" in
+  max*)    EFFORT="mx" ;;
+  xhigh*)  EFFORT="xh" ;;
+  high*)   EFFORT="h" ;;
+  medium*) EFFORT="m" ;;
+  low*)    EFFORT="l" ;;
+  "")      EFFORT="?" ;;
+  *)       EFFORT="$EFFORT_RAW" ;;
+esac
+
 CTX=$(echo    "$INPUT" | jq -r '(.context_window.used_percentage // 0 | round | tostring) + "%"')
 FIVE_H=$(echo "$INPUT" | jq -r '(.rate_limits.five_hour.used_percentage // 0 | round | tostring) + "%"')
 SEVEN_D=$(echo "$INPUT" | jq -r '(.rate_limits.seven_day.used_percentage // 0 | round | tostring) + "%"')
@@ -54,7 +68,7 @@ CACHE=$(echo "$INPUT" | jq -r '
 
 DIR=$(basename "$PWD")
 
-OUT="$SUB | $MODEL | ctx:$CTX | 5h:$FIVE_H 7d:$SEVEN_D | cache:$CACHE | $COST $LINES | $DIR"
+OUT="$SUB | $MODEL/$EFFORT | ctx:$CTX | 5h:$FIVE_H 7d:$SEVEN_D | cache:$CACHE | $COST $LINES | $DIR"
 
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   BRANCH=$(git branch --show-current 2>/dev/null)
