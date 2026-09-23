@@ -21,7 +21,6 @@ install_desktop_apps() {
 
 	if [ "$OS" = "Darwin" ]; then
 		install_linearmouse_app
-		install_obs_app
 		install_logitech_g_hub_app
 	else
 		install_remote_desktop
@@ -93,6 +92,5 @@ install_spotify_app() {
 	fi
 }
 install_linearmouse_app() { brew install --cask linearmouse; }
-install_obs_app() { brew install --cask obs; }
 install_logitech_g_hub_app() { brew install --cask logitech-g-hub; }
 install_remote_desktop() { sudo apt install -y remmina; }
