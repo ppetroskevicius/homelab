@@ -314,6 +314,25 @@
   changed_when: "'Already trusted' not in trust_borders.stdout"
   when: ansible_facts['os_family'] == "Darwin"
 
+# Mailtrap CLI — email testing tool (macOS only)
+- name: Tap mailtrap/cli (macOS)
+  community.general.homebrew_tap:
+    name: mailtrap/cli
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+- name: Install Mailtrap CLI (macOS)
+  community.general.homebrew:
+    name: mailtrap/cli/mailtrap
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+- name: Trust Mailtrap CLI formula (macOS)
+  ansible.builtin.command: brew trust --formula mailtrap/cli/mailtrap
+  register: trust_mailtrap
+  changed_when: "'Already trusted' not in trust_mailtrap.stdout"
+  when: ansible_facts['os_family'] == "Darwin"
+
 # Rancher Desktop (macOS only)
 - name: Install Rancher Desktop (macOS)
   community.general.homebrew_cask:
