@@ -87,6 +87,7 @@
    ` + x           Kill pane
    ` + q           Show pane numbers
    ` + !           Move pane to its own window
+   ` + @ N         Send pane to existing window N (1-9)
 
  COPY MODE  (` + [  to enter, vi keys)
    v               Begin selection
