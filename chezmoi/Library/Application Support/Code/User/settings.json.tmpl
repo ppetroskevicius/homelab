@@ -14,51 +14,51 @@
   "editor.formatOnSave": true,
 
   "[python]": {
-    "editor.defaultFormatter": "charliermarsh.ruff"
+    "editor.defaultFormatter": "charliermarsh.ruff",
   },
   "[javascript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
   },
   "[javascriptreact]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
   },
   "[typescript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
   },
   "[typescriptreact]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
   },
   "[markdown]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
   },
   "[toml]": {
-    "editor.defaultFormatter": "tamasfe.even-better-toml"
+    "editor.defaultFormatter": "tamasfe.even-better-toml",
   },
   "[shellscript]": {
-    "editor.defaultFormatter": "mkhl.shfmt"
+    "editor.defaultFormatter": "mkhl.shfmt",
   },
   "[yaml]": {
-    "editor.defaultFormatter": "redhat.vscode-yaml"
+    "editor.defaultFormatter": "redhat.vscode-yaml",
   },
   "[json]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
   },
   "[jsonc]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
   },
   "[terraform]": {
     "editor.defaultFormatter": "hashicorp.terraform",
     "editor.formatOnSave": true,
-    "editor.formatOnSaveMode": "file"
+    "editor.formatOnSaveMode": "file",
   },
   "[terraform-vars]": {
     "editor.defaultFormatter": "hashicorp.terraform",
     "editor.formatOnSave": true,
-    "editor.formatOnSaveMode": "file"
+    "editor.formatOnSaveMode": "file",
   },
   "[go]": {
     "editor.defaultFormatter": "golang.go",
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
   },
 
   // ────────── Shell formatter settings ──────────
@@ -71,13 +71,13 @@
   "eslint.format.enable": false,
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit",
-    "source.fixAll.stylelint": "explicit"
+    "source.fixAll.stylelint": "explicit",
   },
   "eslint.validate": [
     "javascript",
     "javascriptreact",
     "typescript",
-    "typescriptreact"
+    "typescriptreact",
   ],
 
   // ────────── Stylelint ──────────
@@ -89,7 +89,7 @@
   // ────────── YAML ──────────
   "yaml.format.singleQuote": true,
   "yaml.schemas": {
-    "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.yml"
+    "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.yml",
   },
 
   // ────────── Python tooling ──────────
@@ -128,7 +128,7 @@
   "workbench.colorCustomizations": {
     "editor.findMatchBackground": "#ff8c00cc",
     "editor.findMatchHighlightBackground": "#ffff0066",
-    "editor.findMatchHighlightBorder": "#ffff00cc"
+    "editor.findMatchHighlightBorder": "#ffff00cc",
   },
 
   // ────────── Ignore patterns ──────────
@@ -137,22 +137,27 @@
     "**/.venv": true,
     "**/venv": true,
     "**/__pycache__": true,
-    "**/node_modules": true
+    "**/node_modules": true,
   },
   "search.exclude": {
     "**/.git": true,
     "**/.venv": true,
     "**/venv": true,
     "**/__pycache__": true,
-    "**/node_modules": true
+    "**/node_modules": true,
   },
   "python.analysis.exclude": [
     "**/.git",
     "**/.venv",
     "**/venv",
     "**/__pycache__",
-    "**/node_modules"
+    "**/node_modules",
   ],
+
+  // ────────── Window title (disambiguate worktree windows) ──────────
+  // activeRepositoryName is unreliable in worktrees (VS Code #267612) — it just
+  // echoes rootName — so lead with the branch instead.
+  "window.title": "${activeRepositoryBranchName}${separator}${rootName}${separator}${appName}",
 
   // ────────── Terminal settings ──────────
   "terminal.integrated.fontFamily": "FiraCode Nerd Font Mono",
@@ -164,5 +169,15 @@
   "terminal.integrated.gpuAcceleration": "on",
   "explorer.confirmDelete": false,
   "explorer.confirmDragAndDrop": false,
-  "files.autoSave": "afterDelay"
+  "files.autoSave": "afterDelay",
+  "claudeCode.preferredLocation": "panel",
+  "claudeCode.useTerminal": true,
+  "yaml.disableSchemaDetection": [
+    "**/.github/workflows/*.yml",
+    "**/.github/workflows/*.yaml",
+    "**/.gitea/workflows/*.yml",
+    "**/.gitea/workflows/*.yaml",
+    "**/.forgejo/workflows/*.yml",
+    "**/.forgejo/workflows/*.yaml",
+  ],
 }
