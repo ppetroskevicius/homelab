@@ -22,6 +22,28 @@ This directory contains Ansible playbooks and roles for managing the home lab in
 
 3. **Sudo Access**: The playbooks use `become: true`, so your SSH user must have sudo privileges on the target host.
 
+## Validate Before Running Playbooks
+
+From the repository root, install the declared collections and run lint:
+
+```bash
+cd ansible
+ansible-galaxy collection install -r requirements.yml
+ansible-lint
+ansible-playbook -i inventory.yaml site.yml --syntax-check
+```
+
+Lint uses the real collection modules, including Homebrew modules on Linux; it
+checks their definitions without installing packages or contacting managed hosts.
+Do not mock these modules in `.ansible-lint`, as that can hide invalid arguments.
+
+If lint reports `syntax-check[unknown-module]` but `ansible-doc` can load the same
+module, check `ansible-lint -vv` for the collection search path. Older lint runs
+may have left incomplete mock collections in `ansible/.ansible/collections`,
+which take precedence over installed collections. Move that generated cache
+aside and rerun the commands above; do not remove the installed collections in
+`~/.ansible/collections`.
+
 ## Quick Start: Update and Upgrade `bm-hypervisor-04`
 
 To run apt update and upgrade on `bm-hypervisor-04`:
