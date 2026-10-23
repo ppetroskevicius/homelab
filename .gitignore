@@ -28,3 +28,6 @@ Thumbs.db
 # Local agent usage archives (Claude Code / Codex usage snapshots). Live outside the repo; never commit.
 agent-usage/
 history.ndjson
+
+# Local Claude settings
+.claude/settings.local.json
