@@ -31,3 +31,6 @@ history.ndjson
 
 # Local Claude settings
 .claude/settings.local.json
+
+# Separate local project
+/slack-recap/
