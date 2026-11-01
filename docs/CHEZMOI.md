@@ -179,6 +179,17 @@ The `.chezmoiignore` file prevents desktop-only files from being applied on non-
 
 See [SECRETS.md](SECRETS.md) for the full secrets management strategy.
 
+### Local-only shell config (`~/.zshrc.local`)
+
+This repo is public, so private or work-specific shell config goes in `~/.zshrc.local`.
+`.zshrc` sources it if present, it is listed in `.chezmoiignore`, and it never enters the
+source tree. Do not `chezmoi add` it.
+
+Avoid exporting secrets there. Keep only `op://` references in a local env file and inject
+them per command (`op run --env-file=~/.config/op/<name>.env -- <cmd>`), or use 1Password
+shell plugins. Note that `onepasswordRead "op://..."` in a template still publishes the
+vault/item names, and renders the value in plain text on disk.
+
 ## Comparison Summary
 
 | Aspect | Desktop (`dt-*`) | Non-Desktop (`bm-*`, `vm-*`) |

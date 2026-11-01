@@ -144,6 +144,13 @@
     - ansible_facts['os_family'] == "Debian"
     - not claude_code_check.stat.exists
 
+# ChatGPT Desktop app (macOS only)
+- name: Install ChatGPT Desktop (macOS)
+  community.general.homebrew_cask:
+    name: chatgpt
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
 # Claude Desktop app (macOS only)
 - name: Install Claude Desktop (macOS)
   community.general.homebrew_cask:
@@ -314,6 +321,25 @@
   changed_when: "'Already trusted' not in trust_borders.stdout"
   when: ansible_facts['os_family'] == "Darwin"
 
+# Mailtrap CLI — email testing tool (macOS only)
+- name: Tap mailtrap/cli (macOS)
+  community.general.homebrew_tap:
+    name: mailtrap/cli
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+- name: Install Mailtrap CLI (macOS)
+  community.general.homebrew:
+    name: mailtrap/cli/mailtrap
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+- name: Trust Mailtrap CLI formula (macOS)
+  ansible.builtin.command: brew trust --formula mailtrap/cli/mailtrap
+  register: trust_mailtrap
+  changed_when: "'Already trusted' not in trust_mailtrap.stdout"
+  when: ansible_facts['os_family'] == "Darwin"
+
 # Rancher Desktop (macOS only)
 - name: Install Rancher Desktop (macOS)
   community.general.homebrew_cask:
@@ -339,6 +365,22 @@
 - name: Install Slack (macOS)
   community.general.homebrew_cask:
     name: slack
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+# Slack CLI — create, run and deploy Slack apps (macOS only). The Homebrew
+# cask ships the same tarball as Slack's curl | bash installer, but stays
+# idempotent and upgrades with brew.
+- name: Install Slack CLI (macOS)
+  community.general.homebrew_cask:
+    name: slack-cli
+    state: present
+  when: ansible_facts['os_family'] == "Darwin"
+
+# Flux — screen color temperature controller (macOS only)
+- name: Install Flux (macOS)
+  community.general.homebrew_cask:
+    name: flux-app
     state: present
   when: ansible_facts['os_family'] == "Darwin"
 

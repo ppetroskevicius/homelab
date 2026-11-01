@@ -1,6 +1,10 @@
 {{- $isDesktop := or (eq (get . "machine_type") "desktop") (hasPrefix "dt-" .chezmoi.hostname) -}}
 {{- $isWork := and (hasKey . "is_work") .is_work -}}
 
+# === All machines: local-only files, never managed or committed ===
+# ~/.zshrc.local holds private/work-specific shell config (sourced by .zshrc).
+.zshrc.local
+
 # === Non-desktop machines: ignore all desktop-specific files ===
 {{- if not $isDesktop }}
 

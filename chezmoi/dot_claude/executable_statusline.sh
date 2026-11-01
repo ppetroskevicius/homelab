@@ -32,9 +32,11 @@ MODEL=$(echo "$INPUT" | jq -r '(.model.display_name // "") | ascii_downcase |
   elif test("haiku") then "H"
   else "?" end')
 
-# Model effort: the status line payload has no per-session effort field (upstream issue #36187), so
-# fall back to the configured default in settings.local.json (overrides) or settings.json.
-EFFORT_RAW=$(jq -r '.effortLevel // empty' "$CFG_DIR/settings.local.json" 2>/dev/null)
+# Model effort: the live session level from the payload (.effort.level, sent when the model supports
+# effort); older Claude Code versions omit it, so fall back to the configured default in
+# settings.local.json (overrides) or settings.json.
+EFFORT_RAW=$(echo "$INPUT" | jq -r '.effort.level // empty')
+[ -n "$EFFORT_RAW" ] || EFFORT_RAW=$(jq -r '.effortLevel // empty' "$CFG_DIR/settings.local.json" 2>/dev/null)
 [ -n "$EFFORT_RAW" ] || EFFORT_RAW=$(jq -r '.effortLevel // empty' "$CFG_DIR/settings.json" 2>/dev/null)
 case "$(echo "$EFFORT_RAW" | tr 'A-Z' 'a-z')" in
   max*)    EFFORT="mx" ;;

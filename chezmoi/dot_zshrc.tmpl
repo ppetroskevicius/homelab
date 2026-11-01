@@ -39,7 +39,12 @@ if [ -d "/opt/homebrew/share/google-cloud-sdk/bin" ]; then
   # Pin gcloud's own Python to Homebrew's python@3.14 (the gcloud-cli cask
   # dependency), independent of any active uv/project virtualenv. Avoids the
   # deprecated system Python 3.9 that gcloud otherwise falls back to.
-  if [ -x "/opt/homebrew/bin/python3.14" ]; then
+  # Prefer ~/.venvs/gcloud (python3.14 + NumPy, for faster IAP tunnel uploads).
+  # SITEPACKAGES=1 is needed: gcloud runs Python with -S, which skips NumPy.
+  if [ -x "$HOME/.venvs/gcloud/bin/python" ]; then
+    export CLOUDSDK_PYTHON="$HOME/.venvs/gcloud/bin/python"
+    export CLOUDSDK_PYTHON_SITEPACKAGES=1
+  elif [ -x "/opt/homebrew/bin/python3.14" ]; then
     export CLOUDSDK_PYTHON="/opt/homebrew/bin/python3.14"
   fi
 fi
@@ -52,6 +57,12 @@ export PATH="$HOME/.rd/bin:$PATH"
 # Deno
 export DENO_INSTALL="$HOME/.deno"
 export PATH="$DENO_INSTALL/bin:$PATH"
+
+# Machine-local, untracked settings (never in this repo). Keep private or
+# work-specific config here; see docs/CHEZMOI.md. Sourced before the PATH
+# de-dup below so its PATH changes are de-duplicated too.
+# shellcheck disable=SC1091
+[ -f "$HOME/.zshrc.local" ] && . "$HOME/.zshrc.local"
 
 # De-duplicate PATH keeping first occurrence. Runs last, after every prepend
 # above, so it collapses repeats (e.g. google-cloud-sdk/bin) that scalar
